@@ -15,20 +15,20 @@ This chatbot provides accurate, up-to-date information about the UChicago MS in 
 - **Semantic Search**: Uses FAISS vector search with keyword boosting for relevant information retrieval.
 - **Enhanced Generation**: Leverages OpenAI GPT-3.5-turbo for comprehensive, factual answers
 
-## ✨ Features
+## Features
 
-### 🎯 Optimized Query Handling
+### Optimized Query Handling
 - Pre-configured optimized questions for common inquiries
 - Intelligent keyword boosting for better search results
 - Specialized micro-chunks for critical information (tuition, deadlines, scholarships)
 
-### 🎨 UChicago-Themed Interface
+### UChicago Interface
 - Official UChicago maroon color scheme
 - Clean, professional design
 - Mobile-responsive layout
 - Real-time system status monitoring
 
-### 📊 Key Information Coverage
+### Key Information Coverage
 - **Tuition & Costs**: Exact dollar amounts per course and total program cost
 - **Scholarships**: Specific scholarship names and details
 - **Application Deadlines**: Complete deadline calendar with specific dates
@@ -36,7 +36,7 @@ This chatbot provides accurate, up-to-date information about the UChicago MS in 
 - **Program Details**: Curriculum, faculty, career outcomes
 - **Contact Information**: Direct links to enrollment management
 
-## 🛠️ Technical Architecture
+## 🛠Technical Architecture
 
 ### RAG Pipeline
 1. **Data Collection**: Scrapes 15+ pages from official UChicago DSI website
@@ -49,12 +49,12 @@ This chatbot provides accurate, up-to-date information about the UChicago MS in 
 6. **Answer Generation**: OpenAI GPT-3.5-turbo with specialized prompts
 
 ### Performance Optimizations
-- ✅ Fast regex processing (prevents hanging)
-- ✅ Batch embedding generation with progress tracking  
-- ✅ Memory-efficient chunking for large documents
-- ✅ Keyword boosting for enhanced relevance
+- Fast regex processing (prevents hanging)
+- Batch embedding generation with progress tracking  
+- Memory-efficient chunking for large documents
+- Keyword boosting for enhanced relevance
 
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
 ### Option 1: Streamlit Cloud (Recommended)
 1. Fork this repository
@@ -85,7 +85,7 @@ docker build -t uchicago-msads-bot .
 docker run -p 8501:8501 uchicago-msads-bot
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Required: OpenAI API Key
 1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
@@ -98,14 +98,14 @@ docker run -p 8501:8501 uchicago-msads-bot
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## 📊 System Requirements
+## System Requirements
 
 - **Python**: 3.8+
 - **Memory**: 4GB+ RAM recommended
 - **Storage**: 2GB for models and data
 - **Internet**: Required for web scraping and OpenAI API
 
-## 🎯 Optimized Questions
+## Optimized Questions
 
 The system includes pre-configured optimized questions for best results:
 
@@ -115,7 +115,7 @@ The system includes pre-configured optimized questions for best results:
 4. **Appointments**: "How do I schedule an advising appointment with Jose Alvarado or Patrick Vonesh and what is the portal URL link?"
 5. **Transcripts**: "What is the complete mailing address including street address, suite number, and zip code for sending official transcripts?"
 
-## 📈 Performance Metrics
+## Performance Metrics
 
 - **Initialization Time**: ~5-8 minutes
 - **Query Response Time**: 2-5 seconds
@@ -123,14 +123,14 @@ The system includes pre-configured optimized questions for best results:
 - **Data Coverage**: 15+ official UChicago pages
 - **Knowledge Base**: 2000+ text chunks
 
-## 🛡️ Data Privacy & Security
+## Data Privacy & Security
 
 - No user data stored permanently
 - Chat history stored in session only
 - Official UChicago content only
 - OpenAI API key encrypted in transit
 
-## 🤝 For DSI Staff Evaluation
+## For DSI Staff Evaluation
 
 ### Evaluation Checklist
 - [ ] Test optimized questions for accuracy
@@ -146,7 +146,7 @@ The system includes pre-configured optimized questions for best results:
 4. Test contact and appointment scheduling
 5. Verify program requirements and curriculum
 
-## 📞 Support & Contact
+## Support & Contact
 
 **Technical Issues:**
 - Create an issue in this GitHub repository
@@ -156,10 +156,6 @@ The system includes pre-configured optimized questions for best results:
 - **In-Person Program**: Jose Alvarado, Associate Director
 - **Online Program**: Patrick Vonesh, Senior Assistant Director
 
-## 🎓 About UChicago Data Science Institute
+## About UChicago Data Science Institute
 
 The University of Chicago Data Science Institute offers a comprehensive Master's in Applied Data Science program combining rigorous academics with practical application. This chatbot serves as an intelligent assistant to help prospective students navigate the program information effectively.
-
----
-
-**Built with ❤️ for the University of Chicago Data Science Institute**
