@@ -2,15 +2,15 @@
 
 An intelligent chatbot for the University of Chicago Master's in Applied Data Science program, powered by RAG technology.
 
-## 🚀 Live Demo
+## Live Demo
 
 **Streamlit Cloud URL:** `https://your-app-name.streamlit.app`
 
-## 📋 Overview
+## Overview
 
 This chatbot provides accurate, up-to-date information about the UChicago MS in Applied Data Science program by:
 
-- **Web Scraping**: Automatically scrapes official UChicago Data Science Institute website
+- **Web Scraping**: Automatically scrapes official UChicago Data Science Institute website.
 - **Smart Chunking**: Creates optimized text chunks with specialized micro-chunks for key facts
 - **Semantic Search**: Uses FAISS vector search with keyword boosting for relevant information retrieval
 - **Enhanced Generation**: Leverages OpenAI GPT-3.5-turbo for comprehensive, factual answers
