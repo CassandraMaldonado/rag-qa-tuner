@@ -4,7 +4,7 @@ An intelligent chatbot for the University of Chicago Master's in Applied Data Sc
 
 ## Live Demo
 
-**Streamlit Cloud URL:** `https://your-app-name.streamlit.app`
+**Streamlit Cloud URL:**
 
 ## Overview
 
