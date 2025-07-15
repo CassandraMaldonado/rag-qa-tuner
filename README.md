@@ -22,12 +22,6 @@ This chatbot provides accurate, up-to-date information about the UChicago MSADS 
 - Intelligent keyword boosting for better search results
 - Specialized micro-chunks for critical information (tuition, deadlines, scholarships)
 
-### UChicago Interface
-- Official UChicago maroon color scheme
-- Clean, professional design
-- Mobile-responsive layout
-- Real-time system status monitoring
-
 ### Key Information Coverage
 - **Tuition & Costs**: Exact dollar amounts per course and total program cost
 - **Scholarships**: Specific scholarship names and details
