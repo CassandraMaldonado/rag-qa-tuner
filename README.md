@@ -22,15 +22,7 @@ This chatbot provides accurate, up-to-date information about the UChicago MSADS 
 - Intelligent keyword boosting for better search results.
 - Specialized chunks for critical information.
 
-### Key Information Coverage
-- **Tuition & Costs**: Exact dollar amounts per course and total program cost
-- **Scholarships**: Specific scholarship names and details
-- **Application Deadlines**: Complete deadline calendar with specific dates
-- **Admissions Process**: Requirements, transcripts, test scores
-- **Program Details**: Curriculum, faculty, career outcomes
-- **Contact Information**: Direct links to enrollment management
-
-## 🛠Technical Architecture
+## Technical Architecture
 
 ### RAG Pipeline
 1. **Data Collection**: Scrapes 15+ pages from official UChicago DSI website
