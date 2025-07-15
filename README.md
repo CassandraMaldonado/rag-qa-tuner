@@ -12,8 +12,8 @@ This chatbot provides accurate, up-to-date information about the UChicago MSADS 
 
 - **Web Scraping**: Automatically scraped the UChicago Data Science Institute website.
 - **Smart Chunking**: Created optimized text chunks for important facts.
-- **Semantic Search**: Used FAISS vector search with keyword boosting for relevant information retrieval.
-- **Enhanced Generation**: Leverages OpenAI GPT-3.5-turbo for comprehensive, factual answers
+- **Semantic Search**: Used FAISS vector search with keyword boosting for information retrieval.
+- **Enhanced Generation**: Used OpenAI GPT 3.5 for answers.
 
 ## Features
 
