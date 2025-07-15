@@ -18,9 +18,9 @@ This chatbot provides accurate, up-to-date information about the UChicago MSADS 
 ## Features
 
 ### Optimized Query Handling
-- Pre-configured optimized questions for common inquiries
-- Intelligent keyword boosting for better search results
-- Specialized micro-chunks for critical information (tuition, deadlines, scholarships)
+- Optimized questions for common inquiries.
+- Intelligent keyword boosting for better search results.
+- Specialized chunks for critical information.
 
 ### Key Information Coverage
 - **Tuition & Costs**: Exact dollar amounts per course and total program cost
