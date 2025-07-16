@@ -16,9 +16,6 @@ This chatbot provides accurate, up-to-date information about the UChicago MSADS 
 - **Enhanced Generation**: Used OpenAI GPT 3.5 for answers.
 
 ### Optimized Query Handling
-- Optimized questions for common inquiries.
-- Intelligent keyword boosting for better search results.
-- Specialized chunks for critical information.
 
 ## Technical Architecture
 
