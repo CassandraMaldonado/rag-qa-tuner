@@ -62,19 +62,6 @@ docker build -t uchicago-msads-bot .
 docker run -p 8501:8501 uchicago-msads-bot
 ```
 
-## Configuration
-
-### Required: OpenAI API Key
-1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Add $5-10 in credits at [OpenAI Billing](https://platform.openai.com/account/billing)
-3. Enter the key in the sidebar when running the app
-
-### Optional: Environment Variables
-```bash
-# Create .env file (for local development)
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
 ## System Requirements
 
 - **Python**: 3.8+
