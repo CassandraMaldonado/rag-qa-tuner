@@ -18,7 +18,7 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 ## Technical Architecture
 
 ### RAG Pipeline
-1. **Data Collection**: Scrapes 15+ pages from official UChicago DSI website
+1. **Data Collection**: Scraped over 15 pages from the official UChicago DSI website.
 2. **Content Processing**: Advanced text extraction with URL preservation
 3. **Chunking Strategy**: 
    - Regular overlapping chunks (800 chars, 100 overlap)
