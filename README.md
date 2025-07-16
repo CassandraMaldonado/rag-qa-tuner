@@ -109,17 +109,3 @@ The system includes pre-configured optimized questions for best results:
 3. Inquire about application deadlines
 4. Test contact and appointment scheduling
 5. Verify program requirements and curriculum
-
-## Support & Contact
-
-**Technical Issues:**
-- Create an issue in this GitHub repository
-- Include error messages and steps to reproduce
-
-**Content Questions:**
-- **In-Person Program**: Jose Alvarado, Associate Director
-- **Online Program**: Patrick Vonesh, Senior Assistant Director
-
-## About UChicago Data Science Institute
-
-The University of Chicago Data Science Institute offers a comprehensive Master's in Applied Data Science program combining rigorous academics with practical application. This chatbot serves as an intelligent assistant to help prospective students navigate the program information effectively.
