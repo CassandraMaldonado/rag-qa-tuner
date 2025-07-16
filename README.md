@@ -8,14 +8,12 @@ An intelligent chatbot for the University of Chicago Master's in Applied Data Sc
 
 ## Overview
 
-This chatbot provides accurate, up-to-date information about the UChicago MSADS program by:
+This chatbot provides accurate information about the UChicago MSADS program by:
 
 - **Web Scraping**: Automatically scraped the UChicago Data Science Institute website.
 - **Smart Chunking**: Created optimized text chunks for important facts.
 - **Semantic Search**: Used FAISS vector search with keyword boosting for information retrieval.
 - **Enhanced Generation**: Used OpenAI GPT 3.5 for answers.
-
-### Optimized Query Handling
 
 ## Technical Architecture
 
