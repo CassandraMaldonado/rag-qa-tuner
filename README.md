@@ -33,8 +33,6 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 - Memory-efficient chunking for large documents
 - Keyword boosting for enhanced relevance
 
-## Deployment Instructions
-
 ### Option 1: Streamlit Cloud (Recommended)
 1. Fork this repository
 2. Go to [share.streamlit.io](https://share.streamlit.io)
