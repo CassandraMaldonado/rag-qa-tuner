@@ -19,13 +19,13 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 
 ### RAG Pipeline
 1. **Data Collection**: Scraped over 15 pages from the official UChicago DSI website.
-2. **Content Processing**: Advanced text extraction with URL preservation
+2. **Content Processing**: Advanced text extraction.
 3. **Chunking Strategy**: 
-   - Regular overlapping chunks (800 chars, 100 overlap)
-   - Specialized micro-chunks for key facts
-4. **Embedding Generation**: Uses `all-MiniLM-L6-v2` with batch processing
-5. **Vector Search**: FAISS IndexFlatIP with cosine similarity
-6. **Answer Generation**: OpenAI GPT-3.5-turbo with specialized prompts
+   - Regular overlapping chunks (800 chars, 100 overlap).
+   - Specialized micro-chunks for key facts.
+4. **Embedding Generation**: Used `all-MiniLM-L6-v2` with batch processing.
+5. **Vector Search**: FAISS IndexFlatIP with cosine similarity.
+6. **Answer Generation**: OpenAI GPT 3.5 with specialized prompts.
 
 ### Performance Optimizations
 - Fast regex processing (prevents hanging)
