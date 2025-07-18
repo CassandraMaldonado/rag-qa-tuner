@@ -44,11 +44,11 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 
 The system includes pre-configured optimized questions for best results:
 
-1. **Tuition**: "What is the exact dollar amount tuition cost per course and total tuition for the MS in Applied Data Science program?"
-2. **Scholarships**: "What are the specific names of scholarships including Data Science Institute Scholarship and Alumni Scholarship?"
-3. **Deadlines**: "What are all the specific application deadline dates with month, day and year for the in-person MS Applied Data Science program?"
-4. **Appointments**: "How do I schedule an advising appointment with Jose Alvarado or Patrick Vonesh and what is the portal URL link?"
-5. **Transcripts**: "What is the complete mailing address including street address, suite number, and zip code for sending official transcripts?"
+1. **Tuition**: What is the exact dollar amount tuition cost per course and total tuition for the MS in Applied Data Science program?
+2. **Scholarships**: What are the specific names of scholarships including Data Science Institute Scholarship and Alumni Scholarship?
+3. **Deadlines**: What are all the specific application deadline dates with month, day and year for the in-person MS Applied Data Science program?
+4. **Appointments**: How do I schedule an advising appointment with Jose Alvarado or Patrick Vonesh and what is the portal URL link?
+5. **Transcripts**: What is the complete mailing address including street address, suite number, and zip code for sending official transcripts?
 
 ## Data Privacy & Security
 
