@@ -96,16 +96,9 @@ The system includes pre-configured optimized questions for best results:
 
 ## For DSI Staff Evaluation
 
-### Evaluation Checklist
-- [ ] Test optimized questions for accuracy
-- [ ] Verify tuition amounts and scholarship names
-- [ ] Check application deadline completeness
-- [ ] Validate contact information and URLs
-- [ ] Test system responsiveness and UI
-
 ### Common Test Queries
-1. Ask about specific tuition costs
-2. Request scholarship information
-3. Inquire about application deadlines
-4. Test contact and appointment scheduling
-5. Verify program requirements and curriculum
+1. Ask about tuition costs.
+2. Request scholarship information.
+3. Inquire about application deadlines.
+4. Test contact and appointment scheduling.
+5. Verify program requirements and curriculum.
