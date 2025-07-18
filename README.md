@@ -94,8 +94,6 @@ The system includes pre-configured optimized questions for best results:
 - Official UChicago content only
 - OpenAI API key encrypted in transit
 
-## For DSI Staff Evaluation
-
 ### Common Test Queries
 1. Ask about tuition costs.
 2. Request scholarship information.
