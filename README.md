@@ -59,14 +59,6 @@ The system includes pre-configured optimized questions for best results:
 4. **Appointments**: "How do I schedule an advising appointment with Jose Alvarado or Patrick Vonesh and what is the portal URL link?"
 5. **Transcripts**: "What is the complete mailing address including street address, suite number, and zip code for sending official transcripts?"
 
-## Performance Metrics
-
-- **Initialization Time**: ~5-8 minutes
-- **Query Response Time**: 2-5 seconds
-- **Accuracy**: 95%+ for factual questions
-- **Data Coverage**: 15+ official UChicago pages
-- **Knowledge Base**: 2000+ text chunks
-
 ## Data Privacy & Security
 
 - No user data stored permanently
