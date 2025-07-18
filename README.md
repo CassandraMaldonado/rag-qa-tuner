@@ -33,19 +33,6 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 - Memory-efficient chunking for large documents
 - Keyword boosting for enhanced relevance
 
-### Option 2: Local Development
-```bash
-# Clone the repository
-git clone https://github.com/your-username/uchicago-msads-chatbot.git
-cd uchicago-msads-chatbot
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-streamlit run app.py
-```
-
 ### Option 3: Docker
 ```bash
 # Build the image
