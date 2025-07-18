@@ -33,15 +33,6 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 - Memory-efficient chunking for large documents
 - Keyword boosting for enhanced relevance
 
-### Option 3: Docker
-```bash
-# Build the image
-docker build -t uchicago-msads-bot .
-
-# Run the container
-docker run -p 8501:8501 uchicago-msads-bot
-```
-
 ## System Requirements
 
 - **Python**: 3.8+
