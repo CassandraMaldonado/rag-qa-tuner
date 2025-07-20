@@ -390,11 +390,20 @@ if 'system_ready' not in st.session_state:
     st.session_state.system_ready = False
 
 def main():
-    # Header
+    # Header with UChicago branding
     st.markdown("""
     <div class="main-header">
-        <h1>🎓 UChicago MS-ADS Q&A Bot</h1>
-        <p>Your intelligent assistant for the Master's in Applied Data Science program</p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/University_of_Chicago_shield.svg/120px-University_of_Chicago_shield.svg.png" 
+                 alt="University of Chicago" style="height: 80px;">
+            <div style="text-align: center;">
+                <h1 style="margin: 0; color: white;">MS in Applied Data Science</h1>
+                <p style="margin: 5px 0; color: #D6D6CE;">Intelligent Q&A Assistant</p>
+                <p style="margin: 0; color: #D6D6CE; font-size: 0.9rem;">University of Chicago Data Science Institute</p>
+            </div>
+            <img src="https://datascience.uchicago.edu/wp-content/uploads/2021/11/DSI-logo-white-e1637090280895.png" 
+                 alt="Data Science Institute" style="height: 60px;">
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -511,7 +520,6 @@ def main():
         if st.session_state.system_ready == "ready":
             st.metric("Status", "🟢 Online")
             st.metric("Questions Asked", len(st.session_state.chat_history))
-            st.metric("Mode", "Enhanced")
         else:
             st.metric("Status", "🔴 Setup Required")
 
@@ -520,6 +528,19 @@ def main():
         if st.button("🔄 Clear History"):
             st.session_state.chat_history = []
             st.rerun()
+
+    # Footer with official UChicago branding
+    st.markdown("""
+    <div style="margin-top: 3rem; padding: 2rem; background-color: #800000; color: white; text-align: center; border-radius: 10px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/University_of_Chicago_shield.svg/40px-University_of_Chicago_shield.svg.png" 
+                 alt="UChicago" style="height: 40px;">
+            <span style="font-weight: bold;">University of Chicago</span>
+        </div>
+        <p style="margin: 5px 0;">Data Science Institute | MS in Applied Data Science</p>
+        <p style="margin: 0; font-size: 0.9rem; color: #D6D6CE;">Official Program Information Assistant</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
