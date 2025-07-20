@@ -394,16 +394,15 @@ def main():
     st.markdown("""
     <div class="main-header">
         <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
-            <img src="https://github.com/CassandraMaldonado/rag-qa-tuner/blob/main/assets/uchicago_logo.png" 
+            <img src="https://raw.githubusercontent.com/CassandraMaldonado/rag-qa-tuner/main/assets/uchicago_logo.png" 
                  alt="University of Chicago" style="height: 80px;">
             <div style="text-align: center;">
                 <h1 style="margin: 0; color: white;">MS in Applied Data Science</h1>
                 <p style="margin: 5px 0; color: #D6D6CE;">Intelligent Q&A Assistant</p>
                 <p style="margin: 0; color: #D6D6CE; font-size: 0.9rem;">University of Chicago Data Science Institute</p>
             </div>
-            <div style="width: 60px; height: 60px; background-color: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem;">
-                DSI
-            </div>
+            <img src="https://raw.githubusercontent.com/CassandraMaldonado/rag-qa-tuner/main/assets/dsi_logo.png" 
+                 alt="Data Science Institute" style="height: 60px;">
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -534,7 +533,7 @@ def main():
     st.markdown("""
     <div style="margin-top: 3rem; padding: 2rem; background-color: #800000; color: white; text-align: center; border-radius: 10px;">
         <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px;">
-            <img src="https://github.com/CassandraMaldonado/rag-qa-tuner/blob/main/assets/dsi_logo.png" 
+            <img src="https://raw.githubusercontent.com/CassandraMaldonado/rag-qa-tuner/main/assets/uchicago_logo.png" 
                  alt="UChicago" style="height: 40px;">
             <span style="font-weight: bold;">University of Chicago</span>
         </div>
