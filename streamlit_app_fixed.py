@@ -394,7 +394,7 @@ def main():
     st.markdown("""
     <div class="main-header">
         <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/University_of_Chicago_shield.svg/120px-University_of_Chicago_shield.svg.png" 
+            <img src="https://github.com/CassandraMaldonado/rag-qa-tuner/blob/main/assets/uchicago_logo.png" 
                  alt="University of Chicago" style="height: 80px;">
             <div style="text-align: center;">
                 <h1 style="margin: 0; color: white;">MS in Applied Data Science</h1>
@@ -534,7 +534,7 @@ def main():
     st.markdown("""
     <div style="margin-top: 3rem; padding: 2rem; background-color: #800000; color: white; text-align: center; border-radius: 10px;">
         <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/University_of_Chicago_shield.svg/40px-University_of_Chicago_shield.svg.png" 
+            <img src="https://github.com/CassandraMaldonado/rag-qa-tuner/blob/main/assets/dsi_logo.png" 
                  alt="UChicago" style="height: 40px;">
             <span style="font-weight: bold;">University of Chicago</span>
         </div>
