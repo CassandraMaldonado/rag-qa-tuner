@@ -1,0 +1,10 @@
+{
+  "embedding_model": "all-MiniLM-L6-v2",
+  "chunk_size": 600,
+  "chunk_overlap": 100,
+  "base_url": "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/",
+  "total_chunks": 0,
+  "total_pages": 0,
+  "vector_dimension": 384,
+  "created_at": 1752872694.470866
+}
