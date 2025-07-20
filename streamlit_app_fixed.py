@@ -11,306 +11,565 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Page configuration
 st.set_page_config(
-    page_title="UChicago MS-ADS Q&A Bot - Diagnostic",
-    page_icon="🔧",
-    layout="wide"
+    page_title="UChicago MS-ADS Q&A Bot",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title("🔧 RAG System Diagnostic Tool")
-st.write("Let's check what files you have and debug the loading process...")
-
-# File structure checker
-st.header("📁 File Structure Check")
-
-save_dir = st.text_input("RAG System Directory", value="rag_system_export")
-
-if st.button("🔍 Check Files"):
-    st.write(f"Checking directory: `{save_dir}`")
+# Custom CSS
+st.markdown("""
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #800000 0%, #A01010 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
     
-    if os.path.exists(save_dir):
-        st.success(f"✅ Directory `{save_dir}` exists!")
-        
-        # List all files in the directory
-        files = os.listdir(save_dir)
-        st.write("📋 Files found:")
-        for file in files:
-            file_path = os.path.join(save_dir, file)
-            file_size = os.path.getsize(file_path)
-            st.write(f"- `{file}` ({file_size:,} bytes)")
-        
-        # Check specific required files
-        st.write("\n🎯 Required Files Check:")
-        
-        required_files = {
-            'metadata.json': 'Contains system metadata',
-            'chunks.pkl': 'Contains text chunks for search'
-        }
-        
-        optional_files = {
-            'faiss_index.bin': 'FAISS vector index',
-            'embeddings.npy': 'Precomputed embeddings'
-        }
-        
-        for filename, description in required_files.items():
-            filepath = os.path.join(save_dir, filename)
-            if os.path.exists(filepath):
-                st.success(f"✅ `{filename}` - {description}")
-            else:
-                st.error(f"❌ `{filename}` - {description} - MISSING!")
-        
-        for filename, description in optional_files.items():
-            filepath = os.path.join(save_dir, filename)
-            if os.path.exists(filepath):
-                st.info(f"📦 `{filename}` - {description}")
-            else:
-                st.warning(f"⚠️ `{filename}` - {description} - Not found (optional)")
-        
-    else:
-        st.error(f"❌ Directory `{save_dir}` does not exist!")
-        st.write("Current working directory:", os.getcwd())
-        st.write("Files in current directory:", os.listdir('.'))
+    .main-header h1 {
+        color: white !important;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .answer-box {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 1px solid #D6D6CE;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .source-box {
+        background-color: #F8F8F8;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+        border-left: 3px solid #800000;
+    }
+    
+    .metric-card {
+        background: white;
+        border: 1px solid #D6D6CE;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Metadata inspection
-st.header("📊 Metadata Inspection")
-
-if st.button("🔍 Load and Inspect Metadata"):
-    metadata_path = os.path.join(save_dir, "metadata.json")
-    if os.path.exists(metadata_path):
+class ImprovedRAGSystem:
+    """Improved RAG system with better search and guaranteed LLM answers."""
+    
+    def __init__(self):
+        self.chunks = []
+        self.openai_client = None
+        self.is_loaded = False
+        self.metadata = {}
+        self.vectorizer = None
+        self.chunk_vectors = None
+    
+    def load_system(self, save_dir="rag_system_export"):
+        """Load the RAG system with detailed feedback."""
         try:
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
-            st.success("✅ Metadata loaded successfully!")
-            st.json(metadata)
-        except Exception as e:
-            st.error(f"❌ Error loading metadata: {e}")
-    else:
-        st.error("❌ metadata.json not found!")
-
-# Chunks inspection
-st.header("📝 Chunks Inspection")
-
-if st.button("🔍 Load and Inspect Chunks"):
-    chunks_path = os.path.join(save_dir, "chunks.pkl")
-    if os.path.exists(chunks_path):
-        try:
-            with open(chunks_path, 'rb') as f:
-                chunks = pickle.load(f)
-            st.success(f"✅ Chunks loaded successfully! Found {len(chunks)} chunks")
+            if not os.path.exists(save_dir):
+                st.error(f"❌ Directory '{save_dir}' not found.")
+                return False
             
-            # Show first few chunks
-            st.write("🔍 First 3 chunks preview:")
-            for i, chunk in enumerate(chunks[:3]):
-                with st.expander(f"Chunk {i+1}"):
-                    st.json(chunk)
-            
-            # Show chunk statistics
-            st.write("📈 Chunk Statistics:")
-            chunk_types = {}
-            text_lengths = []
-            
-            for chunk in chunks:
-                chunk_type = chunk.get('chunk_type', 'unknown')
-                chunk_types[chunk_type] = chunk_types.get(chunk_type, 0) + 1
-                text_lengths.append(len(chunk.get('text', '')))
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Chunk Types:**")
-                for chunk_type, count in chunk_types.items():
-                    st.write(f"- {chunk_type}: {count}")
-            
-            with col2:
-                st.write("**Text Length Stats:**")
-                st.write(f"- Average length: {np.mean(text_lengths):.0f} chars")
-                st.write(f"- Min length: {min(text_lengths)} chars")
-                st.write(f"- Max length: {max(text_lengths)} chars")
+            with st.spinner("📂 Loading RAG system..."):
+                # Load metadata
+                metadata_path = os.path.join(save_dir, "metadata.json")
+                if os.path.exists(metadata_path):
+                    with open(metadata_path, 'r') as f:
+                        self.metadata = json.load(f)
+                    st.success(f"✓ Loaded metadata: {self.metadata.get('total_chunks', 0)} chunks expected")
                 
-        except Exception as e:
-            st.error(f"❌ Error loading chunks: {e}")
-            st.write("Error details:", str(e))
-    else:
-        st.error("❌ chunks.pkl not found!")
-
-# Search test
-st.header("🔍 Search Test")
-
-if st.button("🔍 Initialize Search System"):
-    try:
-        # Load files
-        metadata_path = os.path.join(save_dir, "metadata.json")
-        chunks_path = os.path.join(save_dir, "chunks.pkl")
-        
-        if not os.path.exists(metadata_path) or not os.path.exists(chunks_path):
-            st.error("❌ Required files missing!")
-            st.stop()
-        
-        # Load metadata
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
-        st.success("✅ Metadata loaded")
-        
-        # Load chunks
-        with open(chunks_path, 'rb') as f:
-            chunks = pickle.load(f)
-        st.success(f"✅ Chunks loaded: {len(chunks)} total")
-        
-        # Create TF-IDF vectorizer
-        texts = [chunk['text'] for chunk in chunks]
-        vectorizer = TfidfVectorizer(
-            max_features=5000,
-            stop_words='english',
-            ngram_range=(1, 2),
-            lowercase=True
-        )
-        chunk_vectors = vectorizer.fit_transform(texts)
-        st.success("✅ TF-IDF vectors created")
-        
-        # Store in session state for testing
-        st.session_state.chunks = chunks
-        st.session_state.vectorizer = vectorizer
-        st.session_state.chunk_vectors = chunk_vectors
-        
-        st.success("🎉 Search system initialized successfully!")
-        
-    except Exception as e:
-        st.error(f"❌ Error initializing search: {e}")
-        st.write("Full error:", str(e))
-
-# Test search functionality
-if 'chunks' in st.session_state:
-    st.header("🧪 Test Search")
-    
-    test_query = st.text_input("Enter a test query:", "tuition cost")
-    
-    if st.button("🔍 Test Search") and test_query:
-        try:
-            # Perform search
-            query_vector = st.session_state.vectorizer.transform([test_query])
-            similarities = cosine_similarity(query_vector, st.session_state.chunk_vectors).flatten()
-            
-            # Get top results
-            top_indices = similarities.argsort()[-10:][::-1]
-            
-            st.write(f"🎯 Search Results for: '{test_query}'")
-            
-            results_found = False
-            for i, idx in enumerate(top_indices):
-                if similarities[idx] > 0:
-                    results_found = True
-                    chunk = st.session_state.chunks[idx]
-                    score = similarities[idx]
+                # Load chunks
+                chunks_path = os.path.join(save_dir, "chunks.pkl")
+                if os.path.exists(chunks_path):
+                    with open(chunks_path, 'rb') as f:
+                        self.chunks = pickle.load(f)
+                    st.success(f"✓ Loaded {len(self.chunks)} text chunks")
                     
-                    with st.expander(f"Result {i+1} (Score: {score:.4f})"):
-                        st.write(f"**Type:** {chunk.get('chunk_type', 'unknown')}")
-                        st.write(f"**Source:** {chunk.get('source_url', 'N/A')}")
-                        st.write(f"**Text:** {chunk['text'][:500]}...")
-            
-            if not results_found:
-                st.warning("⚠️ No results found with similarity > 0")
+                    # Show chunk type distribution
+                    chunk_types = {}
+                    for chunk in self.chunks:
+                        chunk_type = chunk.get('chunk_type', 'unknown')
+                        chunk_types[chunk_type] = chunk_types.get(chunk_type, 0) + 1
+                    
+                    st.info(f"📊 Chunk types: {dict(chunk_types)}")
+                else:
+                    st.error("❌ chunks.pkl not found")
+                    return False
+                
+                # Create improved TF-IDF vectors
+                with st.spinner("🔍 Creating search index..."):
+                    texts = [chunk['text'] for chunk in self.chunks]
+                    self.vectorizer = TfidfVectorizer(
+                        max_features=10000,  # Increased for better coverage
+                        stop_words='english',
+                        ngram_range=(1, 3),  # Include trigrams for better phrase matching
+                        lowercase=True,
+                        min_df=1,  # Don't ignore rare terms
+                        max_df=0.95  # Ignore very common terms
+                    )
+                    self.chunk_vectors = self.vectorizer.fit_transform(texts)
+                    st.success("✓ Created enhanced TF-IDF search index")
+                
+                self.is_loaded = True
+                st.success("🎉 RAG system loaded successfully!")
+                return True
                 
         except Exception as e:
-            st.error(f"❌ Search error: {e}")
-
-# Sample query tests
-st.header("📋 Sample Query Tests")
-
-sample_queries = [
-    "What are the deadlines for the in-person program?",
-    "Where can I mail my official transcripts?",
-    "tuition cost per course",
-    "visa sponsorship",
-    "MBA program application"
-]
-
-selected_query = st.selectbox("Select a sample query to test:", sample_queries)
-
-if st.button("🧪 Test Sample Query") and 'chunks' in st.session_state:
-    try:
-        query_vector = st.session_state.vectorizer.transform([selected_query])
-        similarities = cosine_similarity(query_vector, st.session_state.chunk_vectors).flatten()
-        
-        # Get top 5 results
-        top_indices = similarities.argsort()[-5:][::-1]
-        
-        st.write(f"🎯 Top 5 Results for: '{selected_query}'")
-        
-        for i, idx in enumerate(top_indices):
-            if similarities[idx] > 0:
-                chunk = st.session_state.chunks[idx]
-                score = similarities[idx]
-                
-                st.write(f"**{i+1}. Score: {score:.4f}**")
-                st.write(f"Type: {chunk.get('chunk_type', 'unknown')}")
-                st.write(f"Text: {chunk['text'][:200]}...")
-                st.write("---")
-    except Exception as e:
-        st.error(f"❌ Error testing query: {e}")
-
-# Content search
-st.header("🔎 Content Search")
-st.write("Search for specific content in your chunks:")
-
-search_term = st.text_input("Search for text containing:", "")
-
-if st.button("🔍 Search Content") and search_term and 'chunks' in st.session_state:
-    matches = []
-    for i, chunk in enumerate(st.session_state.chunks):
-        if search_term.lower() in chunk['text'].lower():
-            matches.append((i, chunk))
+            st.error(f"❌ Error loading system: {e}")
+            return False
     
-    if matches:
-        st.success(f"✅ Found {len(matches)} chunks containing '{search_term}'")
-        for i, (idx, chunk) in enumerate(matches[:5]):  # Show first 5 matches
-            with st.expander(f"Match {i+1} (Chunk {idx})"):
-                st.write(f"**Type:** {chunk.get('chunk_type', 'unknown')}")
-                st.write(f"**Source:** {chunk.get('source_url', 'N/A')}")
-                st.write(f"**Text:** {chunk['text']}")
-    else:
-        st.warning(f"⚠️ No chunks found containing '{search_term}'")
-
-# Summary
-st.header("📝 Diagnostic Summary")
-
-if st.button("📊 Generate Summary"):
-    summary = []
+    def setup_openai(self, api_key: str):
+        """Setup OpenAI client with validation."""
+        try:
+            self.openai_client = openai.OpenAI(api_key=api_key)
+            # Test the connection
+            response = self.openai_client.models.list()
+            st.success("✓ OpenAI API connected successfully")
+            return True
+        except Exception as e:
+            st.error(f"❌ OpenAI setup failed: {e}")
+            return False
     
-    # Check files
-    if os.path.exists(save_dir):
-        summary.append("✅ RAG directory exists")
+    def search_chunks(self, query: str, k: int = 8):
+        """Enhanced search with lower threshold and better boosting."""
+        if not self.is_loaded or not self.vectorizer:
+            return []
         
-        if os.path.exists(os.path.join(save_dir, "metadata.json")):
-            summary.append("✅ metadata.json found")
-        else:
-            summary.append("❌ metadata.json missing")
+        try:
+            # Transform query
+            query_vector = self.vectorizer.transform([query])
+            similarities = cosine_similarity(query_vector, self.chunk_vectors).flatten()
             
-        if os.path.exists(os.path.join(save_dir, "chunks.pkl")):
-            summary.append("✅ chunks.pkl found")
+            # Get more candidates for boosting
+            top_indices = similarities.argsort()[-k*3:][::-1]
+            
+            results = []
+            for idx in top_indices:
+                # Lower threshold - include any similarity > 0.05
+                if similarities[idx] > 0.05:
+                    result = self.chunks[idx].copy()
+                    result['semantic_score'] = float(similarities[idx])
+                    results.append(result)
+            
+            # Apply enhanced boosting
+            enhanced_results = self._apply_enhanced_boosting(query, results)
+            enhanced_results.sort(key=lambda x: x['final_score'], reverse=True)
+            
+            # Return top k results
+            return enhanced_results[:k]
+            
+        except Exception as e:
+            st.error(f"Search error: {e}")
+            return []
+    
+    def _apply_enhanced_boosting(self, query, results):
+        """Apply comprehensive boosting for UChicago MS-ADS queries."""
+        query_lower = query.lower()
+        
+        # Enhanced keyword categories with more comprehensive terms
+        boost_categories = {
+            'deadline_application': {
+                'keywords': ['deadline', 'date', 'apply', 'application', 'due', 'portal', 'september', 'cohort', 'filled', 'open', '2025', '2026', 'events', 'deadlines'],
+                'boost': 2.5
+            },
+            'transcript_address': {
+                'keywords': ['transcript', 'mail', 'address', 'send', 'official', 'university of chicago', 'cityfront', '455', 'suite', 'chicago', 'illinois', '60611', 'graham school'],
+                'boost': 2.5
+            },
+            'mba_joint': {
+                'keywords': ['mba', 'booth', 'joint', 'dual', 'centralized', 'full-time mba', 'application process', 'chicago booth'],
+                'boost': 2.5
+            },
+            'visa_sponsorship': {
+                'keywords': ['visa', 'sponsorship', 'f-1', 'international', 'in-person', 'full-time', 'eligible', 'only the', 'program provides'],
+                'boost': 2.5
+            },
+            'tuition_cost': {
+                'keywords': ['tuition', 'cost', 'fee', 'price', 'dollar', 'per course', 'total', 'financial', 'payment', 'expense'],
+                'boost': 2.0
+            },
+            'scholarship_aid': {
+                'keywords': ['scholarship', 'financial aid', 'funding', 'grant', 'data science institute', 'alumni', 'merit', 'need-based'],
+                'boost': 2.0
+            },
+            'requirements': {
+                'keywords': ['requirement', 'toefl', 'ielts', 'english', 'language', 'minimum', 'gpa', 'prerequisite'],
+                'boost': 1.8
+            },
+            'program_structure': {
+                'keywords': ['courses', 'credits', 'degree', 'complete', 'graduation', 'curriculum', 'stem', 'opt'],
+                'boost': 1.8
+            },
+            'contact_advising': {
+                'keywords': ['contact', 'appointment', 'advisor', 'schedule', 'jose', 'patrick', 'alvarado', 'vonesh', 'advising'],
+                'boost': 1.5
+            }
+        }
+        
+        for result in results:
+            text_lower = result['text'].lower()
+            final_score = result['semantic_score']
+            
+            # Major boost for key facts and micro chunks
+            chunk_type = result.get('chunk_type', 'regular')
+            if chunk_type in ['key_fact', 'micro']:
+                final_score *= 3.0  # Increased boost for key facts
+            elif chunk_type == 'important':
+                final_score *= 2.0
+            
+            # Apply category-specific boosting
+            for category, config in boost_categories.items():
+                query_matches = sum(1 for keyword in config['keywords'] if keyword in query_lower)
+                if query_matches > 0:
+                    text_matches = sum(1 for keyword in config['keywords'] if keyword in text_lower)
+                    if text_matches > 0:
+                        # Enhanced boost calculation
+                        boost_factor = config['boost'] * (1 + 0.2 * text_matches) * (1 + 0.1 * query_matches)
+                        final_score *= boost_factor
+            
+            # Exact phrase matching with high boost
+            exact_phrases = {
+                'application portal': 2.0,
+                'events & deadlines': 2.0,
+                'data science institute scholarship': 2.5,
+                'ms in applied data science alumni scholarship': 2.5,
+                'university of chicago': 1.5,
+                'chicago booth': 2.0,
+                'only the in-person': 2.5,
+                'full-time program is visa eligible': 2.5,
+                '455 n cityfront plaza': 2.5,
+                'graham school': 1.8,
+                'per course': 2.0,
+                'total cost': 2.0
+            }
+            
+            for phrase, boost in exact_phrases.items():
+                if phrase in query_lower and phrase in text_lower:
+                    final_score *= boost
+            
+            # Length penalty for very short chunks (less informative)
+            text_length = len(result['text'])
+            if text_length < 50:
+                final_score *= 0.7
+            elif text_length > 200:
+                final_score *= 1.1  # Slight boost for longer, more detailed chunks
+            
+            result['final_score'] = final_score
+        
+        return results
+    
+    def generate_answer(self, query: str, chunks: List[Dict]):
+        """Generate comprehensive LLM answers."""
+        if not self.openai_client:
+            return "❌ OpenAI client not configured. Please add your API key."
+        
+        if not chunks:
+            return "❌ No relevant information found in the knowledge base."
+        
+        # Build enhanced context with prioritization
+        context_parts = []
+        key_facts = [c for c in chunks if c.get('chunk_type') in ['key_fact', 'micro']]
+        important_chunks = [c for c in chunks if c.get('chunk_type') == 'important']
+        regular_chunks = [c for c in chunks if c.get('chunk_type') not in ['key_fact', 'micro', 'important']]
+        
+        # Prioritize key facts and important information
+        if key_facts:
+            context_parts.append("CRITICAL SPECIFIC INFORMATION:")
+            for i, chunk in enumerate(key_facts[:6]):
+                context_parts.append(f"{i+1}. {chunk['text']}")
+            context_parts.append("")
+        
+        if important_chunks:
+            context_parts.append("IMPORTANT DETAILS:")
+            for i, chunk in enumerate(important_chunks[:4]):
+                context_parts.append(f"• {chunk['text']}")
+            context_parts.append("")
+        
+        if regular_chunks:
+            context_parts.append("ADDITIONAL CONTEXT:")
+            for i, chunk in enumerate(regular_chunks[:4]):
+                context_parts.append(f"Source {i+1}: {chunk['text']}")
+                context_parts.append("")
+        
+        context = "\n".join(context_parts)
+        
+        # Enhanced prompt with specific instructions for UChicago MS-ADS
+        prompt = f"""You are an expert assistant for the MS in Applied Data Science program at the University of Chicago. You must provide complete, accurate, and helpful answers based on the official program information provided.
+
+OFFICIAL PROGRAM INFORMATION:
+{context}
+
+STUDENT QUESTION: {query}
+
+CRITICAL INSTRUCTIONS - Follow these exactly:
+
+1. FOR DEADLINE QUESTIONS: Include ALL specific details about application portal opening, exact dates (September 2025, 2026 entrance), "Events & Deadlines", cohort capacity, and any warnings about early closure.
+
+2. FOR TRANSCRIPT MAILING QUESTIONS: Provide the COMPLETE mailing address including all components: "University of Chicago", department name, street address, suite number, city, state, and ZIP code.
+
+3. FOR MBA/JOINT PROGRAM QUESTIONS: Include details about Joint MBA/MS programs, Chicago Booth requirements, centralized application processes, and specific application instructions.
+
+4. FOR VISA SPONSORSHIP QUESTIONS: Clearly distinguish between program types and their visa eligibility. Be specific about which programs do/don't provide sponsorship.
+
+5. FOR TUITION AND COST QUESTIONS: Include specific dollar amounts, per-course costs, total program costs, and any additional fees mentioned.
+
+6. FOR SCHOLARSHIP QUESTIONS: Include specific scholarship names, amounts, eligibility criteria, and application processes.
+
+7. ALWAYS:
+   - Use exact information from the context
+   - Include specific details like addresses, dates, costs, and requirements
+   - Provide complete answers, not summaries
+   - If multiple pieces of information relate to the question, include all relevant details
+   - Be helpful and informative while staying accurate
+
+Answer the student's question comprehensively using the exact information provided:"""
+        
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are an expert assistant for UChicago's MS in Applied Data Science program. Provide complete, accurate answers with all specific details from the context. Never summarize or omit important information like addresses, dates, costs, or requirements."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1500,
+                temperature=0.1,  # Low temperature for consistency
+            )
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "quota" in error_msg or "billing" in error_msg:
+                return "❌ OpenAI API quota exceeded. Please add credits to your account or check your billing."
+            elif "401" in error_msg or "authentication" in error_msg:
+                return "❌ Invalid OpenAI API key. Please check your API key."
+            elif "rate_limit" in error_msg:
+                return "❌ Rate limit exceeded. Please wait a moment and try again."
+            else:
+                return f"❌ Error generating answer: {str(e)}"
+    
+    def ask_question(self, query: str):
+        """Complete Q&A pipeline with guaranteed LLM response."""
+        if not self.is_loaded:
+            return "❌ System not loaded", []
+        
+        # Always search for chunks
+        relevant_chunks = self.search_chunks(query, 8)
+        
+        # Always try to generate an answer, even with low-scoring chunks
+        if relevant_chunks:
+            answer = self.generate_answer(query, relevant_chunks)
         else:
-            summary.append("❌ chunks.pkl missing")
-    else:
-        summary.append("❌ RAG directory not found")
+            # If no chunks found, provide a helpful response
+            answer = f"I couldn't find specific information about '{query}' in the MS in Applied Data Science knowledge base. This might be because:\n\n1. The information isn't available in the current data\n2. Try rephrasing your question\n3. Contact the program directly for the most current information\n\nProgram contacts:\n- In-Person Program: Jose Alvarado, Associate Director\n- Online Program: Patrick Vonesh, Senior Assistant Director"
+            relevant_chunks = []
+        
+        return answer, relevant_chunks
+
+# Initialize session state
+if 'rag_system' not in st.session_state:
+    st.session_state.rag_system = None
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'system_ready' not in st.session_state:
+    st.session_state.system_ready = False
+
+def main():
+    # Header
+    st.markdown("""
+    <div class="main-header">
+        <h1>🎓 UChicago MS-ADS Q&A Bot</h1>
+        <p>Your intelligent assistant for the Master's in Applied Data Science program</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Sidebar
+    with st.sidebar:
+        st.markdown("### 🔧 System Setup")
+        
+        # System loading
+        st.markdown("#### 📂 Load RAG System")
+        save_dir = st.text_input(
+            "RAG System Directory", 
+            value="rag_system_export",
+            help="Path to your saved RAG system folder"
+        )
+        
+        if st.button("📥 Load System", type="primary"):
+            st.session_state.rag_system = ImprovedRAGSystem()
+            success = st.session_state.rag_system.load_system(save_dir)
+            if success:
+                st.session_state.system_ready = "loaded"
+        
+        # OpenAI setup
+        st.markdown("#### 🔑 OpenAI API Key")
+        api_key = st.text_input(
+            "API Key", 
+            type="password",
+            help="Enter your OpenAI API key"
+        )
+        
+        if api_key and st.session_state.system_ready == "loaded":
+            if st.button("🔗 Connect OpenAI"):
+                if st.session_state.rag_system.setup_openai(api_key):
+                    st.session_state.system_ready = "ready"
+
+        # System status
+        if st.session_state.system_ready == "ready":
+            st.success("✅ System Ready!")
+            
+            if st.session_state.rag_system:
+                rag = st.session_state.rag_system
+                st.markdown("### 📊 System Info")
+                st.metric("Text Chunks", len(rag.chunks))
+                if rag.metadata:
+                    st.metric("Pages Scraped", rag.metadata.get('total_pages', 'N/A'))
+                st.info("🚀 Enhanced TF-IDF + LLM Mode")
+                
+        elif st.session_state.system_ready == "loaded":
+            st.warning("⚠️ Add OpenAI API key to enable Q&A")
+        else:
+            st.warning("⚠️ Load your RAG system first")
+
+        # Tips
+        st.markdown("### 💡 Tips")
+        st.markdown("""
+        - Use the question templates below
+        - System now uses enhanced search
+        - All answers generated by GPT
+        """)
+
+        st.markdown("### 📞 Contact")
+        st.markdown("""
+        **In-Person Program:**  
+        Jose Alvarado, Associate Director
+        
+        **Online Program:**  
+        Patrick Vonesh, Senior Assistant Director
+        """)
+
+    # Main content
+    col1, col2 = st.columns([2, 1])
     
-    # Check session state
-    if 'chunks' in st.session_state:
-        summary.append(f"✅ Search system loaded with {len(st.session_state.chunks)} chunks")
-    else:
-        summary.append("❌ Search system not initialized")
-    
-    st.write("**Diagnostic Results:**")
-    for item in summary:
-        st.write(item)
-    
-    # Recommendations
-    st.write("\n**Recommendations:**")
-    if "❌ RAG directory not found" in summary:
-        st.write("1. 🔧 Make sure your `rag_system_export` folder is in the same directory as this script")
-        st.write("2. 📁 Check the exact folder name and path")
-    elif "❌ metadata.json missing" in summary or "❌ chunks.pkl missing" in summary:
-        st.write("1. 🔧 Make sure all required files are in the RAG directory")
-        st.write("2. 📊 Re-export your RAG system if files are missing")
-    elif "❌ Search system not initialized" in summary:
-        st.write("1. 🔧 Click 'Initialize Search System' button above")
-        st.write("2. 🐛 Check error messages for specific issues")
-    else:
-        st.write("1. ✅ System looks good! Try the sample queries above")
-        st.write("2. 🔧 If search isn't working, check the search test results")
+    with col1:
+        st.markdown("### 💬 Ask Your Question")
+        
+        # Question templates
+        st.markdown("**🎯 Sample Questions:**")
+        sample_questions = [
+            "What are the deadlines for the in-person program?",
+            "Where can I mail my official transcripts?",
+            "How do I apply to the MBA/MS program?",
+            "Does the Master's in Applied Data Science Online program provide visa sponsorship?",
+            "What is the exact tuition cost per course and total for the program?",
+            "What scholarships are available including Data Science Institute Scholarship?",
+            "What are the minimum TOEFL and IELTS English Language Requirements?",
+            "How many courses must you complete to earn the Master's degree?",
+            "Is the MS in Applied Data Science program STEM/OPT eligible?",
+            "How do I schedule an advising appointment?"
+        ]
+        
+        selected_question = None
+        cols = st.columns(2)
+        for i, question in enumerate(sample_questions):
+            with cols[i % 2]:
+                if st.button(f"Q{i+1}: {question[:35]}...", key=f"q_{i}", help=question):
+                    selected_question = question
+
+        # Question input
+        user_question = st.text_area(
+            "Your Question:", 
+            value=selected_question if selected_question else "",
+            placeholder="Ask anything about the MS in Applied Data Science program...",
+            height=100
+        )
+
+        # Ask button
+        if st.button("🔍 Get Answer", type="primary", disabled=(st.session_state.system_ready != "ready")):
+            if user_question and st.session_state.rag_system:
+                with st.spinner("🤖 Generating answer..."):
+                    start_time = time.time()
+                    answer, sources = st.session_state.rag_system.ask_question(user_question)
+                    response_time = time.time() - start_time
+                    
+                    # Display answer
+                    st.markdown('<div class="answer-box">', unsafe_allow_html=True)
+                    st.markdown("### 📝 Answer")
+                    st.write(answer)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Display search info
+                    if sources:
+                        st.info(f"📊 Found {len(sources)} relevant sources (response time: {response_time:.1f}s)")
+                        
+                        with st.expander("📚 View Sources", expanded=False):
+                            for i, source in enumerate(sources[:5]):
+                                st.markdown(f'<div class="source-box">', unsafe_allow_html=True)
+                                st.markdown(f"**Source {i+1}** (Score: {source.get('final_score', 0):.4f})")
+                                st.markdown(f"**Type:** {source.get('chunk_type', 'regular')}")
+                                st.markdown(f"**Text:** {source['text'][:400]}...")
+                                st.markdown('</div>', unsafe_allow_html=True)
+                    else:
+                        st.info("📊 No specific sources found - generated general response")
+                    
+                    # Add to chat history
+                    st.session_state.chat_history.append({
+                        'question': user_question,
+                        'answer': answer,
+                        'sources': len(sources) if sources else 0,
+                        'timestamp': time.strftime('%H:%M:%S')
+                    })
+
+        # Chat history
+        if st.session_state.chat_history:
+            st.markdown("### 💭 Recent Questions")
+            for i, chat in enumerate(reversed(st.session_state.chat_history[-3:])):
+                with st.expander(f"Q: {chat['question'][:60]}... ({chat['timestamp']})"):
+                    st.markdown(f"**Question:** {chat['question']}")
+                    st.markdown("**Answer:**")
+                    st.markdown(chat['answer'][:500] + ("..." if len(chat['answer']) > 500 else ""))
+
+    # Right column
+    with col2:
+        st.markdown("### 📊 System Status")
+        
+        if st.session_state.system_ready == "ready":
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("Status", "🟢 Online")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("Questions Asked", len(st.session_state.chat_history))
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("Mode", "Enhanced")
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("Status", "🔴 Setup Required")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Quick actions
+        st.markdown("### ⚡ Actions")
+        if st.button("🔄 Clear History"):
+            st.session_state.chat_history = []
+            st.rerun()
+
+if __name__ == "__main__":
+    main()
