@@ -104,7 +104,7 @@ class ImprovedRAGSystem:
                         chunk_type = chunk.get('chunk_type', 'unknown')
                         chunk_types[chunk_type] = chunk_types.get(chunk_type, 0) + 1
                     
-                    st.info(f"📊 Chunk types: {dict(chunk_types)}")
+                    st.info(f"✓ Chunk types: {dict(chunk_types)}")
                 else:
                     st.error("❌ chunks.pkl not found")
                     return False
@@ -124,7 +124,7 @@ class ImprovedRAGSystem:
                     st.success("✓ Created enhanced TF-IDF search index")
                 
                 self.is_loaded = True
-                st.success("🎉 RAG system loaded successfully!")
+                st.success("✓ RAG system loaded successfully!")
                 return True
                 
         except Exception as e:
@@ -515,7 +515,6 @@ def main():
 
     # Right column
     with col2:
-        st.markdown("### 📊 System Status")
         
         if st.session_state.system_ready == "ready":
             st.metric("Status", "🟢 Online")
