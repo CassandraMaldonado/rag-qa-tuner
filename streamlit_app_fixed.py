@@ -80,7 +80,7 @@ class ImprovedRAGSystem:
         """Load the RAG system with detailed feedback."""
         try:
             if not os.path.exists(save_dir):
-                st.error(f"❌ Directory '{save_dir}' not found.")
+                st.error(f"Directory '{save_dir}' not found.")
                 return False
             
             with st.spinner("📂 Loading RAG system..."):
@@ -89,14 +89,14 @@ class ImprovedRAGSystem:
                 if os.path.exists(metadata_path):
                     with open(metadata_path, 'r') as f:
                         self.metadata = json.load(f)
-                    st.success(f"✓ Loaded metadata: {self.metadata.get('total_chunks', 0)} chunks expected")
+                    st.success(f"Loaded metadata: {self.metadata.get('total_chunks', 0)} chunks expected")
                 
                 # Load chunks
                 chunks_path = os.path.join(save_dir, "chunks.pkl")
                 if os.path.exists(chunks_path):
                     with open(chunks_path, 'rb') as f:
                         self.chunks = pickle.load(f)
-                    st.success(f"✓ Loaded {len(self.chunks)} text chunks")
+                    st.success(f"Loaded {len(self.chunks)} text chunks")
                     
                     # Show chunk type distribution
                     chunk_types = {}
@@ -104,13 +104,13 @@ class ImprovedRAGSystem:
                         chunk_type = chunk.get('chunk_type', 'unknown')
                         chunk_types[chunk_type] = chunk_types.get(chunk_type, 0) + 1
                     
-                    st.info(f"📊 Chunk types: {dict(chunk_types)}")
+                    st.info(f"Chunk types: {dict(chunk_types)}")
                 else:
-                    st.error("❌ chunks.pkl not found")
+                    st.error("chunks.pkl not found")
                     return False
                 
                 # Create improved TF-IDF vectors
-                with st.spinner("🔍 Creating search index..."):
+                with st.spinner("Creating search index..."):
                     texts = [chunk['text'] for chunk in self.chunks]
                     self.vectorizer = TfidfVectorizer(
                         max_features=10000,  # Increased for better coverage
@@ -124,11 +124,11 @@ class ImprovedRAGSystem:
                     st.success("✓ Created enhanced TF-IDF search index")
                 
                 self.is_loaded = True
-                st.success("🎉 RAG system loaded successfully!")
+                st.success("RAG system loaded successfully!")
                 return True
                 
         except Exception as e:
-            st.error(f"❌ Error loading system: {e}")
+            st.error(f"Error loading system: {e}")
             return False
     
     def setup_openai(self, api_key: str):
@@ -137,10 +137,10 @@ class ImprovedRAGSystem:
             self.openai_client = openai.OpenAI(api_key=api_key)
             # Test the connection
             response = self.openai_client.models.list()
-            st.success("✓ OpenAI API connected successfully")
+            st.success("OpenAI API connected successfully")
             return True
         except Exception as e:
-            st.error(f"❌ OpenAI setup failed: {e}")
+            st.error(f"OpenAI setup failed: {e}")
             return False
     
     def search_chunks(self, query: str, k: int = 8):
@@ -274,10 +274,10 @@ class ImprovedRAGSystem:
     def generate_answer(self, query: str, chunks: List[Dict]):
         """Generate comprehensive LLM answers."""
         if not self.openai_client:
-            return "❌ OpenAI client not configured. Please add your API key."
+            return "OpenAI client not configured. Please add your API key."
         
         if not chunks:
-            return "❌ No relevant information found in the knowledge base."
+            return "No relevant information found in the knowledge base."
         
         # Build enhanced context with prioritization
         context_parts = []
@@ -355,18 +355,18 @@ Answer the student's question comprehensively using the exact information provid
         except Exception as e:
             error_msg = str(e).lower()
             if "quota" in error_msg or "billing" in error_msg:
-                return "❌ OpenAI API quota exceeded. Please add credits to your account or check your billing."
+                return "OpenAI API quota exceeded. Please add credits to your account or check your billing."
             elif "401" in error_msg or "authentication" in error_msg:
-                return "❌ Invalid OpenAI API key. Please check your API key."
+                return "Invalid OpenAI API key. Please check your API key."
             elif "rate_limit" in error_msg:
-                return "❌ Rate limit exceeded. Please wait a moment and try again."
+                return "Rate limit exceeded. Please wait a moment and try again."
             else:
-                return f"❌ Error generating answer: {str(e)}"
+                return f"Error generating answer: {str(e)}"
     
     def ask_question(self, query: str):
         """Complete Q&A pipeline with guaranteed LLM response."""
         if not self.is_loaded:
-            return "❌ System not loaded", []
+            return "System not loaded", []
         
         # Always search for chunks
         relevant_chunks = self.search_chunks(query, 8)
