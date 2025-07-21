@@ -113,12 +113,12 @@ class ImprovedRAGSystem:
                 with st.spinner("🔍 Creating search index..."):
                     texts = [chunk['text'] for chunk in self.chunks]
                     self.vectorizer = TfidfVectorizer(
-                        max_features=10000,
+                        max_features=10000,  # Increased for better coverage
                         stop_words='english',
-                        ngram_range=(1, 3),
+                        ngram_range=(1, 3),  # Include trigrams for better phrase matching
                         lowercase=True,
-                        min_df=1,
-                        max_df=0.95
+                        min_df=1,  # Don't ignore rare terms
+                        max_df=0.95  # Ignore very common terms
                     )
                     self.chunk_vectors = self.vectorizer.fit_transform(texts)
                     st.success("✓ Created enhanced TF-IDF search index")
@@ -135,6 +135,7 @@ class ImprovedRAGSystem:
         """Setup OpenAI client with validation."""
         try:
             self.openai_client = openai.OpenAI(api_key=api_key)
+            # Test the connection
             response = self.openai_client.models.list()
             st.success("✓ OpenAI API connected successfully")
             return True
@@ -148,21 +149,26 @@ class ImprovedRAGSystem:
             return []
         
         try:
+            # Transform query
             query_vector = self.vectorizer.transform([query])
             similarities = cosine_similarity(query_vector, self.chunk_vectors).flatten()
             
+            # Get more candidates for boosting
             top_indices = similarities.argsort()[-k*3:][::-1]
             
             results = []
             for idx in top_indices:
+                # Lower threshold - include any similarity > 0.05
                 if similarities[idx] > 0.05:
                     result = self.chunks[idx].copy()
                     result['semantic_score'] = float(similarities[idx])
                     results.append(result)
             
+            # Apply enhanced boosting
             enhanced_results = self._apply_enhanced_boosting(query, results)
             enhanced_results.sort(key=lambda x: x['final_score'], reverse=True)
             
+            # Return top k results
             return enhanced_results[:k]
             
         except Exception as e:
@@ -173,63 +179,93 @@ class ImprovedRAGSystem:
         """Apply comprehensive boosting for UChicago MS-ADS queries."""
         query_lower = query.lower()
         
-        # Keywords for boosting - FIXED VERSION
-        tuition_words = ['tuition', 'cost', 'costs', 'fee', 'fees', 'price', 'pricing', 'dollar', 'dollars', 'course', 'total', 'financial', 'payment', 'expense', 'expensive', 'money', 'pay', 'amount', 'credit', 'unit']
-        scholarship_words = ['scholarship', 'scholarships', 'aid', 'funding', 'grant', 'grants', 'institute', 'alumni', 'merit', 'assistance', 'support', 'award', 'awards', 'fellowship', 'fellowships']
-        deadline_words = ['deadline', 'deadlines', 'date', 'dates', 'apply', 'application', 'due', 'portal', 'september', 'cohort', 'filled', 'open', '2025', '2026', 'events', 'when', 'timeline', 'schedule', 'admission', 'round', 'early', 'late', 'close', 'closing']
+        # Enhanced keyword categories with more comprehensive terms
+        boost_categories = {
+            'deadline_application': {
+                'keywords': ['deadline', 'date', 'apply', 'application', 'due', 'portal', 'september', 'cohort', 'filled', 'open', '2025', '2026', 'events', 'deadlines'],
+                'boost': 2.5
+            },
+            'transcript_address': {
+                'keywords': ['transcript', 'mail', 'address', 'send', 'official', 'university of chicago', 'cityfront', '455', 'suite', 'chicago', 'illinois', '60611', 'graham school'],
+                'boost': 2.5
+            },
+            'mba_joint': {
+                'keywords': ['mba', 'booth', 'joint', 'dual', 'centralized', 'full-time mba', 'application process', 'chicago booth'],
+                'boost': 2.5
+            },
+            'visa_sponsorship': {
+                'keywords': ['visa', 'sponsorship', 'f-1', 'international', 'in-person', 'full-time', 'eligible', 'only the', 'program provides'],
+                'boost': 2.5
+            },
+            'tuition_cost': {
+                'keywords': ['tuition', 'cost', 'fee', 'price', 'dollar', 'per course', 'total', 'financial', 'payment', 'expense'],
+                'boost': 2.0
+            },
+            'scholarship_aid': {
+                'keywords': ['scholarship', 'financial aid', 'funding', 'grant', 'data science institute', 'alumni', 'merit', 'need-based'],
+                'boost': 2.0
+            },
+            'requirements': {
+                'keywords': ['requirement', 'toefl', 'ielts', 'english', 'language', 'minimum', 'gpa', 'prerequisite'],
+                'boost': 1.8
+            },
+            'program_structure': {
+                'keywords': ['courses', 'credits', 'degree', 'complete', 'graduation', 'curriculum', 'stem', 'opt'],
+                'boost': 1.8
+            },
+            'contact_advising': {
+                'keywords': ['contact', 'appointment', 'advisor', 'schedule', 'jose', 'patrick', 'alvarado', 'vonesh', 'advising'],
+                'boost': 1.5
+            }
+        }
         
         for result in results:
             text_lower = result['text'].lower()
             final_score = result['semantic_score']
             
-            # Boost for key facts
+            # Major boost for key facts and micro chunks
             chunk_type = result.get('chunk_type', 'regular')
             if chunk_type in ['key_fact', 'micro']:
-                final_score *= 3.0
+                final_score *= 3.0  # Increased boost for key facts
             elif chunk_type == 'important':
                 final_score *= 2.0
             
-            # Apply targeted boosting for the 3 problematic queries
-            # Tuition queries
-            tuition_query_match = any(word in query_lower for word in tuition_words)
-            tuition_text_match = any(word in text_lower for word in tuition_words)
-            if tuition_query_match and tuition_text_match:
-                final_score *= 3.5
+            # Apply category-specific boosting
+            for category, config in boost_categories.items():
+                query_matches = sum(1 for keyword in config['keywords'] if keyword in query_lower)
+                if query_matches > 0:
+                    text_matches = sum(1 for keyword in config['keywords'] if keyword in text_lower)
+                    if text_matches > 0:
+                        # Enhanced boost calculation
+                        boost_factor = config['boost'] * (1 + 0.2 * text_matches) * (1 + 0.1 * query_matches)
+                        final_score *= boost_factor
             
-            # Scholarship queries  
-            scholarship_query_match = any(word in query_lower for word in scholarship_words)
-            scholarship_text_match = any(word in text_lower for word in scholarship_words)
-            if scholarship_query_match and scholarship_text_match:
-                final_score *= 3.5
+            # Exact phrase matching with high boost
+            exact_phrases = {
+                'application portal': 2.0,
+                'events & deadlines': 2.0,
+                'data science institute scholarship': 2.5,
+                'ms in applied data science alumni scholarship': 2.5,
+                'university of chicago': 1.5,
+                'chicago booth': 2.0,
+                'only the in-person': 2.5,
+                'full-time program is visa eligible': 2.5,
+                '455 n cityfront plaza': 2.5,
+                'graham school': 1.8,
+                'per course': 2.0,
+                'total cost': 2.0
+            }
             
-            # Deadline queries
-            deadline_query_match = any(word in query_lower for word in deadline_words)
-            deadline_text_match = any(word in text_lower for word in deadline_words)
-            if deadline_query_match and deadline_text_match:
-                final_score *= 3.5
+            for phrase, boost in exact_phrases.items():
+                if phrase in query_lower and phrase in text_lower:
+                    final_score *= boost
             
-            # Other category boosts (unchanged)
-            if 'transcript' in query_lower and 'transcript' in text_lower:
-                final_score *= 2.5
-            if 'mba' in query_lower and 'mba' in text_lower:
-                final_score *= 2.5
-            if 'visa' in query_lower and 'visa' in text_lower:
-                final_score *= 2.5
-            
-            # Exact phrase matching
-            if 'tuition cost' in query_lower and 'tuition cost' in text_lower:
-                final_score *= 3.0
-            if 'scholarship available' in query_lower and 'scholarship' in text_lower:
-                final_score *= 3.0
-            if 'deadline' in query_lower and 'deadline' in text_lower:
-                final_score *= 3.0
-            
-            # Length adjustment
+            # Length penalty for very short chunks (less informative)
             text_length = len(result['text'])
             if text_length < 50:
                 final_score *= 0.7
             elif text_length > 200:
-                final_score *= 1.1
+                final_score *= 1.1  # Slight boost for longer, more detailed chunks
             
             result['final_score'] = final_score
         
@@ -243,12 +279,13 @@ class ImprovedRAGSystem:
         if not chunks:
             return "❌ No relevant information found in the knowledge base."
         
-        # Build context
+        # Build enhanced context with prioritization
         context_parts = []
         key_facts = [c for c in chunks if c.get('chunk_type') in ['key_fact', 'micro']]
         important_chunks = [c for c in chunks if c.get('chunk_type') == 'important']
         regular_chunks = [c for c in chunks if c.get('chunk_type') not in ['key_fact', 'micro', 'important']]
         
+        # Prioritize key facts and important information
         if key_facts:
             context_parts.append("CRITICAL SPECIFIC INFORMATION:")
             for i, chunk in enumerate(key_facts[:6]):
@@ -269,7 +306,7 @@ class ImprovedRAGSystem:
         
         context = "\n".join(context_parts)
         
-        # Enhanced prompt
+        # Enhanced prompt with specific instructions for UChicago MS-ADS
         prompt = f"""You are an expert assistant for the MS in Applied Data Science program at the University of Chicago. You must provide complete, accurate, and helpful answers based on the official program information provided.
 
 OFFICIAL PROGRAM INFORMATION:
@@ -311,7 +348,7 @@ Answer the student's question comprehensively using the exact information provid
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=1500,
-                temperature=0.1,
+                temperature=0.1,  # Low temperature for consistency
             )
             return response.choices[0].message.content
             
@@ -331,11 +368,14 @@ Answer the student's question comprehensively using the exact information provid
         if not self.is_loaded:
             return "❌ System not loaded", []
         
+        # Always search for chunks
         relevant_chunks = self.search_chunks(query, 8)
         
+        # Always try to generate an answer, even with low-scoring chunks
         if relevant_chunks:
             answer = self.generate_answer(query, relevant_chunks)
         else:
+            # If no chunks found, provide a helpful response
             answer = f"I couldn't find specific information about '{query}' in the MS in Applied Data Science knowledge base. This might be because:\n\n1. The information isn't available in the current data\n2. Try rephrasing your question\n3. Contact the program directly for the most current information\n\nProgram contacts:\n- In-Person Program: Jose Alvarado, Associate Director\n- Online Program: Patrick Vonesh, Senior Assistant Director"
             relevant_chunks = []
         
