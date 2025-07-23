@@ -49,8 +49,3 @@ The system includes pre-configured optimized questions for best results:
 3. **Deadlines**: What are all the specific application deadline dates with month, day and year for the in-person MS Applied Data Science program?
 4. **Appointments**: How do I schedule an advising appointment with Jose Alvarado or Patrick Vonesh and what is the portal URL link?
 5. **Transcripts**: What is the complete mailing address including street address, suite number, and zip code for sending official transcripts?
-
-## Data Privacy & Security
-
-- No user data stored permanently
-- Chat history stored in session only
