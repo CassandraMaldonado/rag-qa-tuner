@@ -28,7 +28,7 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 6. **Answer Generation**: OpenAI GPT 3.5 with specialized prompts.
 
 ### Performance Optimizations
-- Fast regex processing (prevents hanging)
+- Fast regex processing.
 - Batch embedding generation with progress tracking  
 - Memory-efficient chunking for large documents
 - Keyword boosting for enhanced relevance
