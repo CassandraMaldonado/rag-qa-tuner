@@ -32,9 +32,6 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 - Batch embedding generation with progress tracking.  
 - Memory chunking for large documents.
 
-## System Requirements
-
-
 ## Optimized Questions
 
 The system includes pre-configured optimized questions for best results:
