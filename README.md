@@ -54,5 +54,3 @@ The system includes pre-configured optimized questions for best results:
 
 - No user data stored permanently
 - Chat history stored in session only
-- Official UChicago content only
-- OpenAI API key encrypted in transit
