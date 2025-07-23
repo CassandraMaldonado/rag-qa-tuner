@@ -36,8 +36,7 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 
 - **Python**: 3.8+
 - **Memory**: 4GB+ RAM recommended
-- **Storage**: 2GB for models and data
-- **Internet**: Required for web scraping and OpenAI API
+
 
 ## Optimized Questions
 
