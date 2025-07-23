@@ -29,8 +29,8 @@ This chatbot provides accurate information about the UChicago MSADS program by:
 
 ### Performance Optimizations
 - Fast regex processing.
-- Batch embedding generation with progress tracking  
-- Memory-efficient chunking for large documents
+- Batch embedding generation with progress tracking.  
+- Memory chunking for large documents.
 - Keyword boosting for enhanced relevance
 
 ## System Requirements
