@@ -125,9 +125,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Speech-to-Text Component with reliable auto-transfer
+# Simple Speech-to-Text Component that actually works
 def speech_to_text_component():
-    """Create a speech-to-text component that reliably updates Streamlit"""
+    """Create a simple speech-to-text component"""
     
     speech_component = """
     <div class="speech-controls">
@@ -136,6 +136,8 @@ def speech_to_text_component():
         </button>
         <div id="transcript" class="speech-transcript">Click the microphone to start speaking...</div>
         <div id="status" class="speech-status">Ready</div>
+        <textarea id="speechOutput" style="width: 100%; height: 60px; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Your speech will appear here..."></textarea>
+        <button onclick="copyToClipboard()" style="margin-top: 5px; padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">📋 Copy Text</button>
     </div>
 
     <script>
@@ -176,12 +178,10 @@ def speech_to_text_component():
             const transcriptDiv = document.getElementById('transcript');
             transcriptDiv.textContent = currentTranscript;
             
-            // When we have a final transcript, store it globally
+            // Put the transcript in the textarea immediately
             if (finalTranscript.trim()) {
-                // Store globally and signal completion
-                window.latestSpeechTranscript = finalTranscript.trim();
-                window.speechTranscriptReady = true;
-                document.getElementById('status').textContent = 'Speech captured! Click "Use Speech" button below.';
+                document.getElementById('speechOutput').value = finalTranscript.trim();
+                document.getElementById('status').textContent = 'Speech captured! Copy the text below and paste it in the question box.';
             }
         };
         
@@ -195,19 +195,19 @@ def speech_to_text_component():
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
             if (currentTranscript.trim()) {
-                document.getElementById('status').textContent = 'Ready! Click "Use Speech" to transfer text.';
+                document.getElementById('status').textContent = 'Done! Copy the text and paste it below.';
             } else {
                 document.getElementById('status').textContent = 'Ready';
             }
         };
     } else {
-        document.getElementById('status').textContent = 'Speech recognition not supported';
+        document.getElementById('status').textContent = 'Speech recognition not supported in this browser';
         document.getElementById('speechButton').disabled = true;
     }
     
     function toggleSpeech() {
         if (!recognition) {
-            alert('Speech recognition is not supported in your browser');
+            alert('Speech recognition is not supported in your browser. Try using Chrome, Edge, or Safari.');
             return;
         }
         
@@ -216,89 +216,43 @@ def speech_to_text_component():
             isRecording = false;
         } else {
             // Clear previous transcript
-            window.latestSpeechTranscript = '';
-            window.speechTranscriptReady = false;
+            document.getElementById('speechOutput').value = '';
+            currentTranscript = '';
             recognition.start();
             isRecording = true;
         }
     }
     
-    // Function to get the latest transcript (called by Streamlit)
-    function getLatestTranscript() {
-        if (window.speechTranscriptReady && window.latestSpeechTranscript) {
-            const transcript = window.latestSpeechTranscript;
-            // Clear the flags after getting the transcript
-            window.speechTranscriptReady = false;
-            window.latestSpeechTranscript = '';
-            return transcript;
+    function copyToClipboard() {
+        const textarea = document.getElementById('speechOutput');
+        if (textarea.value.trim()) {
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                document.getElementById('status').textContent = '✓ Copied! Now paste it in the question box below.';
+            } catch (err) {
+                document.getElementById('status').textContent = 'Please manually copy the text from the box above.';
+            }
+        } else {
+            document.getElementById('status').textContent = 'No text to copy. Please speak first.';
         }
-        return '';
     }
     
-    // Make function globally available
-    window.getLatestTranscript = getLatestTranscript;
-    
-    // Listen for clear messages
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'clear_transcript') {
-            document.getElementById('transcript').textContent = 'Click the microphone to start speaking...';
-            currentTranscript = '';
-            window.latestSpeechTranscript = '';
-            window.speechTranscriptReady = false;
+    // Auto-select text when clicked
+    document.addEventListener('DOMContentLoaded', function() {
+        const textarea = document.getElementById('speechOutput');
+        if (textarea) {
+            textarea.addEventListener('click', function() {
+                this.select();
+            });
         }
     });
     </script>
     """
     
-    return components.html(speech_component, height=120)
-
-# Component to retrieve speech transcript using JavaScript execution
-def get_transcript_component():
-    """Component that executes JavaScript to get speech transcript"""
-    
-    get_js = """
-    <script>
-    // Get transcript from the speech component
-    let transcript = '';
-    try {
-        // Check all possible locations for the transcript
-        if (window.parent && window.parent.getLatestTranscript) {
-            transcript = window.parent.getLatestTranscript();
-        } else if (window.getLatestTranscript) {
-            transcript = window.getLatestTranscript();
-        } else {
-            // Try to find it in any iframe
-            const frames = window.parent.frames;
-            for (let i = 0; i < frames.length; i++) {
-                try {
-                    if (frames[i].getLatestTranscript) {
-                        transcript = frames[i].getLatestTranscript();
-                        if (transcript) break;
-                    }
-                } catch (e) {
-                    // Cross-origin frame, skip
-                    continue;
-                }
-            }
-        }
-    } catch (e) {
-        transcript = '';
-    }
-    
-    // Return the transcript as the component value
-    if (transcript) {
-        document.body.innerHTML = '<div style="color: green; font-weight: bold;">✓ Speech retrieved: "' + transcript.substring(0, 50) + (transcript.length > 50 ? '..."' : '"') + '</div>';
-    } else {
-        document.body.innerHTML = '<div style="color: orange;">No new speech found</div>';
-    }
-    
-    // Also try to communicate back to Streamlit
-    window.transcriptResult = transcript;
-    </script>
-    """
-    
-    result = components.html(get_js, height=50)
-    return result
+    return components.html(speech_component, height=200)
 
 class ImprovedRAGSystem:
     """Improved RAG system with better search and guaranteed LLM answers."""
@@ -702,100 +656,13 @@ def main():
         st.markdown("#### 🎤 Voice Input")
         speech_to_text_component()
         
-        # Simple manual transfer button
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("🎤 Use Speech", help="Transfer speech to question box"):
-                # Use JavaScript to get the speech and store it
-                js_code = """
-                <script>
-                let transcript = '';
-                try {
-                    // Try to get transcript from any available source
-                    if (window.parent && window.parent.latestSpeechTranscript) {
-                        transcript = window.parent.latestSpeechTranscript;
-                        window.parent.latestSpeechTranscript = '';
-                    } else if (window.latestSpeechTranscript) {
-                        transcript = window.latestSpeechTranscript;
-                        window.latestSpeechTranscript = '';
-                    } else {
-                        // Try to find it in iframes
-                        const frames = window.parent.frames;
-                        for (let i = 0; i < frames.length; i++) {
-                            try {
-                                if (frames[i].latestSpeechTranscript) {
-                                    transcript = frames[i].latestSpeechTranscript;
-                                    frames[i].latestSpeechTranscript = '';
-                                    break;
-                                }
-                            } catch (e) {
-                                continue;
-                            }
-                        }
-                    }
-                } catch (e) {
-                    transcript = '';
-                }
-                
-                // Store in sessionStorage for retrieval
-                if (transcript) {
-                    sessionStorage.setItem('streamlit_speech_transcript', transcript);
-                    document.body.innerHTML = '<div style="color: green; padding: 10px; border: 1px solid green; border-radius: 5px;">✓ Found speech: "' + transcript.substring(0, 100) + (transcript.length > 100 ? '..."' : '"') + '</div>';
-                } else {
-                    document.body.innerHTML = '<div style="color: orange; padding: 10px; border: 1px solid orange; border-radius: 5px;">⚠ No speech found. Please try speaking again.</div>';
-                }
-                </script>
-                """
-                
-                components.html(js_code, height=100)
-                
-                # Now check sessionStorage using another component
-                check_storage_js = """
-                <script>
-                const transcript = sessionStorage.getItem('streamlit_speech_transcript');
-                if (transcript) {
-                    sessionStorage.removeItem('streamlit_speech_transcript');
-                    // Create a hidden input with the transcript
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.id = 'speechResult';
-                    input.value = transcript;
-                    document.body.appendChild(input);
-                    
-                    // Also display it
-                    document.body.innerHTML = '<div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;"><strong>✓ Speech Retrieved:</strong><br>"' + transcript + '"<br><br><em>This text is now ready to use in your question!</em></div>';
-                }
-                </script>
-                """
-                
-                # Small delay to ensure the first component completes
-                time.sleep(0.1)
-                
-                speech_result = components.html(check_storage_js, height=150)
-                
-                # Try to get the transcript using a more direct approach
-                if 'temp_speech' not in st.session_state:
-                    st.session_state.temp_speech = ""
-                
-                # Manual input for the transcript as a fallback
-                st.markdown("**If speech was detected above, paste it here:**")
-                manual_transcript = st.text_input("", placeholder="Paste your speech here if it was detected above", key="manual_speech_input")
-                
-                if manual_transcript:
-                    st.session_state.speech_transcript = manual_transcript
-                    st.success(f"✓ Speech set: {manual_transcript[:50]}...")
-                    st.rerun()
-        
-        with col2:
-            if st.button("🗑️ Clear Speech"):
-                st.session_state.speech_transcript = ""
-                st.rerun()
+        st.info("💡 **Simple Speech Workflow:** 1) Click the microphone and speak, 2) Click 'Copy Text' button, 3) Paste in the question box below")
         
         # Question input
         user_question = st.text_area(
             "Your Question:", 
             value=st.session_state.get('speech_transcript', ''),
-            placeholder="Ask anything about the MS in Applied Data Science program... or speak using the microphone above and click 'Use Speech'!",
+            placeholder="Ask anything about the MS in Applied Data Science program... or speak above and paste the text here!",
             height=100,
             key="question_input"
         )
@@ -809,7 +676,6 @@ def main():
         with col_clear:
             if st.button("🗑️ Clear All"):
                 st.session_state.speech_transcript = ""
-                # Clear the user_question by rerunning
                 st.rerun()
         
         # Ask button
@@ -856,20 +722,20 @@ def main():
         # Instructions for speech input
         with st.expander("🎤 How to use Voice Input", expanded=False):
             st.markdown("""
-            **Using Speech-to-Text (Semi-Automatic):**
+            **Using Speech-to-Text (Simple & Reliable):**
             1. Click the 🎤 microphone button to start recording
             2. Speak your question clearly
-            3. Click "🎤 Use Speech" button to transfer the speech
-            4. If speech appears in the detection box, copy it to the "Paste your speech" field
-            5. Your speech will then appear in the question box
+            3. Your speech will appear in the text box below the microphone
+            4. Click the "📋 Copy Text" button to copy your speech
+            5. Paste the text into the "Your Question" box below
             6. Click "Get Answer" to process your question
             
             **Tips for better recognition:**
             - Speak clearly and at normal pace
             - Use a quiet environment
             - Allow microphone access when prompted by your browser
-            - Supported in Chrome, Edge, Safari, and other modern browsers
-            - The system will show you exactly what speech was detected
+            - Works best in Chrome, Edge, and Safari
+            - You can click on the speech text box to select all text easily
             """)
 
         # Chat history
