@@ -128,100 +128,134 @@ st.markdown("""
 # Speech-to-Text Component
 def speech_to_text_component():
     """Create a speech-to-text component using Web Speech API"""
-    speech_component = """
+    
+    # Use a unique key for the component to ensure proper state management
+    component_key = f"speech_component_{int(time.time())}"
+    
+    speech_component = f"""
     <div class="speech-controls">
         <button id="speechButton" class="speech-button" onclick="toggleSpeech()">
             🎤
         </button>
         <div id="transcript" class="speech-transcript">Click the microphone to start speaking...</div>
         <div id="status" class="speech-status">Ready</div>
+        <button id="useTranscript" class="speech-button" onclick="useTranscript()" style="margin-left: 10px; width: auto; padding: 10px 15px; border-radius: 5px; background-color: #28a745;">
+            ✓ Use Text
+        </button>
     </div>
 
     <script>
     let recognition = null;
     let isRecording = false;
+    let currentTranscript = '';
     
     // Check if browser supports speech recognition
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {{
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         
-        recognition.continuous = true;
+        recognition.continuous = false;  // Changed to false for better control
         recognition.interimResults = true;
         recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
         
-        recognition.onstart = function() {
+        recognition.onstart = function() {{
             document.getElementById('status').textContent = 'Listening...';
             document.getElementById('speechButton').classList.add('recording');
             document.getElementById('transcript').textContent = 'Speak now...';
-        };
+        }};
         
-        recognition.onresult = function(event) {
+        recognition.onresult = function(event) {{
             let finalTranscript = '';
             let interimTranscript = '';
             
-            for (let i = event.resultIndex; i < event.results.length; i++) {
+            for (let i = event.resultIndex; i < event.results.length; i++) {{
                 const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
+                if (event.results[i].isFinal) {{
                     finalTranscript += transcript;
-                } else {
+                }} else {{
                     interimTranscript += transcript;
-                }
-            }
+                }}
+            }}
             
+            currentTranscript = finalTranscript || interimTranscript;
             const transcriptDiv = document.getElementById('transcript');
-            transcriptDiv.textContent = finalTranscript + interimTranscript;
+            transcriptDiv.textContent = currentTranscript;
             
-            // Send transcript to Streamlit
-            if (finalTranscript) {
-                window.parent.postMessage({
-                    type: 'speech_transcript',
-                    transcript: finalTranscript
-                }, '*');
-            }
-        };
+            // Auto-send final transcript to Streamlit
+            if (finalTranscript.trim()) {{
+                setTimeout(() => {{
+                    useTranscript();
+                }}, 500);
+            }}
+        }};
         
-        recognition.onerror = function(event) {
+        recognition.onerror = function(event) {{
             document.getElementById('status').textContent = 'Error: ' + event.error;
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
-        };
+        }};
         
-        recognition.onend = function() {
+        recognition.onend = function() {{
             document.getElementById('status').textContent = 'Ready';
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
-        };
-    } else {
+        }};
+    }} else {{
         document.getElementById('status').textContent = 'Speech recognition not supported';
         document.getElementById('speechButton').disabled = true;
-    }
+    }}
     
-    function toggleSpeech() {
-        if (!recognition) {
+    function toggleSpeech() {{
+        if (!recognition) {{
             alert('Speech recognition is not supported in your browser');
             return;
-        }
+        }}
         
-        if (isRecording) {
+        if (isRecording) {{
             recognition.stop();
             isRecording = false;
-        } else {
+        }} else {{
             recognition.start();
             isRecording = true;
-        }
-    }
+        }}
+    }}
+    
+    function useTranscript() {{
+        if (currentTranscript.trim()) {{
+            // Send the transcript to Streamlit using a more reliable method
+            const event = new CustomEvent('streamlit:setComponentValue', {{
+                detail: {{
+                    key: '{component_key}',
+                    value: currentTranscript.trim()
+                }}
+            }});
+            window.parent.document.dispatchEvent(event);
+            
+            // Also try the postMessage method as backup
+            window.parent.postMessage({{
+                type: 'speech_transcript',
+                transcript: currentTranscript.trim(),
+                key: '{component_key}'
+            }}, '*');
+            
+            document.getElementById('status').textContent = 'Text sent to input field!';
+        }}
+    }}
     
     // Listen for messages from parent (Streamlit)
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'clear_transcript') {
+    window.addEventListener('message', function(event) {{
+        if (event.data.type === 'clear_transcript') {{
             document.getElementById('transcript').textContent = 'Click the microphone to start speaking...';
-        }
-    });
+            currentTranscript = '';
+        }}
+    }});
     </script>
     """
     
-    return components.html(speech_component, height=100)
+    # Return the transcript value to Streamlit
+    result = components.html(speech_component, height=120, key=component_key)
+    return result
 
 class ImprovedRAGSystem:
     """Improved RAG system with better search and guaranteed LLM answers."""
@@ -623,16 +657,19 @@ def main():
         
         # Speech-to-Text Component
         st.markdown("#### 🎤 Voice Input")
-        speech_to_text_component()
+        speech_result = speech_to_text_component()
         
-        # Check for speech transcript from the component
-        # This would typically be handled through a more sophisticated state management
-        # For this example, we'll use a text input that can be populated
+        # Handle speech transcript
+        if speech_result:
+            st.session_state.speech_transcript = speech_result
         
         # Question input with speech integration
+        # Use the speech transcript if available, otherwise use current value
+        current_question = st.session_state.get('speech_transcript', '')
+        
         user_question = st.text_area(
             "Your Question:", 
-            value=st.session_state.speech_transcript,
+            value=current_question,
             placeholder="Ask anything about the MS in Applied Data Science program... or use the microphone above!",
             height=100,
             key="question_input"
@@ -692,15 +729,16 @@ def main():
             **Using Speech-to-Text:**
             1. Click the 🎤 microphone button to start recording
             2. Speak your question clearly
-            3. Click the microphone again to stop recording
-            4. Your speech will be converted to text automatically
-            5. Review the text and click "Get Answer"
+            3. The text will appear in real-time
+            4. Click the ✓ "Use Text" button or wait for auto-transfer
+            5. Review the text in the question box and click "Get Answer"
             
             **Tips for better recognition:**
             - Speak clearly and at normal pace
             - Use a quiet environment
             - Allow microphone access when prompted by your browser
             - Supported in Chrome, Edge, Safari, and other modern browsers
+            - Click "Use Text" to transfer speech to the question box
             """)
 
         # Chat history
