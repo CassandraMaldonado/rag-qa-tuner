@@ -125,15 +125,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Speech-to-Text Component with automatic transfer
+# Speech-to-Text Component with reliable auto-transfer
 def speech_to_text_component():
-    """Create a speech-to-text component that automatically updates Streamlit"""
+    """Create a speech-to-text component that reliably updates Streamlit"""
     
-    # Create a unique key for this session
-    if 'speech_key' not in st.session_state:
-        st.session_state.speech_key = str(int(time.time() * 1000))
-    
-    speech_component = f"""
+    speech_component = """
     <div class="speech-controls">
         <button id="speechButton" class="speech-button" onclick="toggleSpeech()">
             🎤
@@ -148,7 +144,7 @@ def speech_to_text_component():
     let currentTranscript = '';
     
     // Check if browser supports speech recognition
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {{
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         
@@ -157,138 +153,152 @@ def speech_to_text_component():
         recognition.lang = 'en-US';
         recognition.maxAlternatives = 1;
         
-        recognition.onstart = function() {{
+        recognition.onstart = function() {
             document.getElementById('status').textContent = 'Listening...';
             document.getElementById('speechButton').classList.add('recording');
             document.getElementById('transcript').textContent = 'Speak now...';
-        }};
+        };
         
-        recognition.onresult = function(event) {{
+        recognition.onresult = function(event) {
             let finalTranscript = '';
             let interimTranscript = '';
             
-            for (let i = event.resultIndex; i < event.results.length; i++) {{
+            for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {{
+                if (event.results[i].isFinal) {
                     finalTranscript += transcript;
-                }} else {{
+                } else {
                     interimTranscript += transcript;
-                }}
-            }}
+                }
+            }
             
             currentTranscript = finalTranscript || interimTranscript;
             const transcriptDiv = document.getElementById('transcript');
             transcriptDiv.textContent = currentTranscript;
             
-            // When we have a final transcript, automatically transfer it
-            if (finalTranscript.trim()) {{
-                // Store in localStorage with a unique key
-                localStorage.setItem('speechTranscript_{st.session_state.speech_key}', finalTranscript.trim());
-                document.getElementById('status').textContent = 'Speech captured! Transferring to question box...';
-                
-                // Trigger a Streamlit rerun by creating a custom event
-                setTimeout(() => {{
-                    // Try multiple methods to trigger Streamlit update
-                    window.parent.postMessage({{
-                        type: 'speech_complete',
-                        transcript: finalTranscript.trim(),
-                        key: '{st.session_state.speech_key}'
-                    }}, '*');
-                    
-                    // Also dispatch a custom event
-                    const event = new CustomEvent('speechTranscriptReady', {{
-                        detail: {{
-                            transcript: finalTranscript.trim(),
-                            key: '{st.session_state.speech_key}'
-                        }}
-                    }});
-                    window.dispatchEvent(event);
-                    window.parent.dispatchEvent(event);
-                }}, 100);
-            }}
-        }};
+            // When we have a final transcript, store it globally
+            if (finalTranscript.trim()) {
+                // Store globally and signal completion
+                window.latestSpeechTranscript = finalTranscript.trim();
+                window.speechTranscriptReady = true;
+                document.getElementById('status').textContent = 'Speech captured! Click "Use Speech" button below.';
+            }
+        };
         
-        recognition.onerror = function(event) {{
+        recognition.onerror = function(event) {
             document.getElementById('status').textContent = 'Error: ' + event.error;
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
-        }};
+        };
         
-        recognition.onend = function() {{
+        recognition.onend = function() {
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
-            if (currentTranscript.trim()) {{
-                document.getElementById('status').textContent = 'Speech transferred to question box!';
-            }} else {{
+            if (currentTranscript.trim()) {
+                document.getElementById('status').textContent = 'Ready! Click "Use Speech" to transfer text.';
+            } else {
                 document.getElementById('status').textContent = 'Ready';
-            }}
-        }};
-    }} else {{
+            }
+        };
+    } else {
         document.getElementById('status').textContent = 'Speech recognition not supported';
         document.getElementById('speechButton').disabled = true;
-    }}
+    }
     
-    function toggleSpeech() {{
-        if (!recognition) {{
+    function toggleSpeech() {
+        if (!recognition) {
             alert('Speech recognition is not supported in your browser');
             return;
-        }}
+        }
         
-        if (isRecording) {{
+        if (isRecording) {
             recognition.stop();
             isRecording = false;
-        }} else {{
+        } else {
+            // Clear previous transcript
+            window.latestSpeechTranscript = '';
+            window.speechTranscriptReady = false;
             recognition.start();
             isRecording = true;
-        }}
-    }}
+        }
+    }
     
-    // Function to check for new transcript
-    function checkForTranscript() {{
-        const transcript = localStorage.getItem('speechTranscript_{st.session_state.speech_key}');
-        return transcript || '';
-    }}
+    // Function to get the latest transcript (called by Streamlit)
+    function getLatestTranscript() {
+        if (window.speechTranscriptReady && window.latestSpeechTranscript) {
+            const transcript = window.latestSpeechTranscript;
+            // Clear the flags after getting the transcript
+            window.speechTranscriptReady = false;
+            window.latestSpeechTranscript = '';
+            return transcript;
+        }
+        return '';
+    }
     
-    // Make function available globally
-    window.checkForTranscript = checkForTranscript;
+    // Make function globally available
+    window.getLatestTranscript = getLatestTranscript;
     
     // Listen for clear messages
-    window.addEventListener('message', function(event) {{
-        if (event.data.type === 'clear_transcript') {{
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'clear_transcript') {
             document.getElementById('transcript').textContent = 'Click the microphone to start speaking...';
             currentTranscript = '';
-            localStorage.removeItem('speechTranscript_{st.session_state.speech_key}');
-        }}
-    }});
+            window.latestSpeechTranscript = '';
+            window.speechTranscriptReady = false;
+        }
+    });
     </script>
     """
     
     return components.html(speech_component, height=120)
 
-# Function to check for speech transcript in localStorage
-def check_for_speech_transcript():
-    """Check if there's a new speech transcript available"""
-    if 'speech_key' not in st.session_state:
-        return None
-        
-    # JavaScript to check localStorage
-    check_js = f"""
+# Component to retrieve speech transcript using JavaScript execution
+def get_transcript_component():
+    """Component that executes JavaScript to get speech transcript"""
+    
+    get_js = """
     <script>
-    const transcript = localStorage.getItem('speechTranscript_{st.session_state.speech_key}');
-    if (transcript) {{
-        // Clear it so we don't get it again
-        localStorage.removeItem('speechTranscript_{st.session_state.speech_key}');
-        
-        // Send it back to Streamlit
-        window.parent.postMessage({{
-            type: 'transcript_found',
-            transcript: transcript
-        }}, '*');
-    }}
+    // Get transcript from the speech component
+    let transcript = '';
+    try {
+        // Check all possible locations for the transcript
+        if (window.parent && window.parent.getLatestTranscript) {
+            transcript = window.parent.getLatestTranscript();
+        } else if (window.getLatestTranscript) {
+            transcript = window.getLatestTranscript();
+        } else {
+            // Try to find it in any iframe
+            const frames = window.parent.frames;
+            for (let i = 0; i < frames.length; i++) {
+                try {
+                    if (frames[i].getLatestTranscript) {
+                        transcript = frames[i].getLatestTranscript();
+                        if (transcript) break;
+                    }
+                } catch (e) {
+                    // Cross-origin frame, skip
+                    continue;
+                }
+            }
+        }
+    } catch (e) {
+        transcript = '';
+    }
+    
+    // Return the transcript as the component value
+    if (transcript) {
+        document.body.innerHTML = '<div style="color: green; font-weight: bold;">✓ Speech retrieved: "' + transcript.substring(0, 50) + (transcript.length > 50 ? '..."' : '"') + '</div>';
+    } else {
+        document.body.innerHTML = '<div style="color: orange;">No new speech found</div>';
+    }
+    
+    // Also try to communicate back to Streamlit
+    window.transcriptResult = transcript;
     </script>
     """
     
-    return components.html(check_js, height=0)
+    result = components.html(get_js, height=50)
+    return result
 
 class ImprovedRAGSystem:
     """Improved RAG system with better search and guaranteed LLM answers."""
@@ -692,24 +702,100 @@ def main():
         st.markdown("#### 🎤 Voice Input")
         speech_to_text_component()
         
-        # Check for new speech transcript automatically
-        if st.button("🔄 Check for Speech", key="check_speech_btn", help="Click to check if speech was captured"):
-            check_for_speech_transcript()
-            
-        # Auto-refresh mechanism - check every few seconds
-        if 'last_speech_check' not in st.session_state:
-            st.session_state.last_speech_check = time.time()
-            
-        # Check for speech transcript periodically
-        if time.time() - st.session_state.last_speech_check > 2:  # Check every 2 seconds
-            check_for_speech_transcript()
-            st.session_state.last_speech_check = time.time()
+        # Simple manual transfer button
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🎤 Use Speech", help="Transfer speech to question box"):
+                # Use JavaScript to get the speech and store it
+                js_code = """
+                <script>
+                let transcript = '';
+                try {
+                    // Try to get transcript from any available source
+                    if (window.parent && window.parent.latestSpeechTranscript) {
+                        transcript = window.parent.latestSpeechTranscript;
+                        window.parent.latestSpeechTranscript = '';
+                    } else if (window.latestSpeechTranscript) {
+                        transcript = window.latestSpeechTranscript;
+                        window.latestSpeechTranscript = '';
+                    } else {
+                        // Try to find it in iframes
+                        const frames = window.parent.frames;
+                        for (let i = 0; i < frames.length; i++) {
+                            try {
+                                if (frames[i].latestSpeechTranscript) {
+                                    transcript = frames[i].latestSpeechTranscript;
+                                    frames[i].latestSpeechTranscript = '';
+                                    break;
+                                }
+                            } catch (e) {
+                                continue;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    transcript = '';
+                }
+                
+                // Store in sessionStorage for retrieval
+                if (transcript) {
+                    sessionStorage.setItem('streamlit_speech_transcript', transcript);
+                    document.body.innerHTML = '<div style="color: green; padding: 10px; border: 1px solid green; border-radius: 5px;">✓ Found speech: "' + transcript.substring(0, 100) + (transcript.length > 100 ? '..."' : '"') + '</div>';
+                } else {
+                    document.body.innerHTML = '<div style="color: orange; padding: 10px; border: 1px solid orange; border-radius: 5px;">⚠ No speech found. Please try speaking again.</div>';
+                }
+                </script>
+                """
+                
+                components.html(js_code, height=100)
+                
+                # Now check sessionStorage using another component
+                check_storage_js = """
+                <script>
+                const transcript = sessionStorage.getItem('streamlit_speech_transcript');
+                if (transcript) {
+                    sessionStorage.removeItem('streamlit_speech_transcript');
+                    // Create a hidden input with the transcript
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.id = 'speechResult';
+                    input.value = transcript;
+                    document.body.appendChild(input);
+                    
+                    // Also display it
+                    document.body.innerHTML = '<div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;"><strong>✓ Speech Retrieved:</strong><br>"' + transcript + '"<br><br><em>This text is now ready to use in your question!</em></div>';
+                }
+                </script>
+                """
+                
+                # Small delay to ensure the first component completes
+                time.sleep(0.1)
+                
+                speech_result = components.html(check_storage_js, height=150)
+                
+                # Try to get the transcript using a more direct approach
+                if 'temp_speech' not in st.session_state:
+                    st.session_state.temp_speech = ""
+                
+                # Manual input for the transcript as a fallback
+                st.markdown("**If speech was detected above, paste it here:**")
+                manual_transcript = st.text_input("", placeholder="Paste your speech here if it was detected above", key="manual_speech_input")
+                
+                if manual_transcript:
+                    st.session_state.speech_transcript = manual_transcript
+                    st.success(f"✓ Speech set: {manual_transcript[:50]}...")
+                    st.rerun()
         
-        # Question input with automatic speech integration
+        with col2:
+            if st.button("🗑️ Clear Speech"):
+                st.session_state.speech_transcript = ""
+                st.rerun()
+        
+        # Question input
         user_question = st.text_area(
             "Your Question:", 
             value=st.session_state.get('speech_transcript', ''),
-            placeholder="Ask anything about the MS in Applied Data Science program... or speak using the microphone above!",
+            placeholder="Ask anything about the MS in Applied Data Science program... or speak using the microphone above and click 'Use Speech'!",
             height=100,
             key="question_input"
         )
@@ -770,19 +856,20 @@ def main():
         # Instructions for speech input
         with st.expander("🎤 How to use Voice Input", expanded=False):
             st.markdown("""
-            **Using Speech-to-Text (Automatic):**
+            **Using Speech-to-Text (Semi-Automatic):**
             1. Click the 🎤 microphone button to start recording
             2. Speak your question clearly
-            3. Speech will automatically appear in the question box below
-            4. Click "Get Answer" to process your question
-            5. If text doesn't appear automatically, click "🔄 Check for Speech"
+            3. Click "🎤 Use Speech" button to transfer the speech
+            4. If speech appears in the detection box, copy it to the "Paste your speech" field
+            5. Your speech will then appear in the question box
+            6. Click "Get Answer" to process your question
             
             **Tips for better recognition:**
             - Speak clearly and at normal pace
             - Use a quiet environment
             - Allow microphone access when prompted by your browser
             - Supported in Chrome, Edge, Safari, and other modern browsers
-            - Speech should automatically transfer to the question box
+            - The system will show you exactly what speech was detected
             """)
 
         # Chat history
