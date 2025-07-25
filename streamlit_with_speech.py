@@ -136,9 +136,7 @@ def speech_to_text_component():
         </button>
         <div id="transcript" class="speech-transcript">Click the microphone to start speaking...</div>
         <div id="status" class="speech-status">Ready</div>
-        <button id="useTranscript" class="speech-button" onclick="useTranscript()" style="margin-left: 10px; width: auto; padding: 10px 15px; border-radius: 5px; background-color: #28a745;">
-            ✓ Use Text
-        </button>
+        <input type="hidden" id="speechOutput" />
     </div>
 
     <script>
@@ -179,11 +177,10 @@ def speech_to_text_component():
             const transcriptDiv = document.getElementById('transcript');
             transcriptDiv.textContent = currentTranscript;
             
-            // Auto-send final transcript
+            // Store the final transcript
             if (finalTranscript.trim()) {
-                setTimeout(() => {
-                    useTranscript();
-                }, 500);
+                document.getElementById('speechOutput').value = finalTranscript.trim();
+                document.getElementById('status').textContent = 'Speech captured! Copy the text below.';
             }
         };
         
@@ -194,7 +191,11 @@ def speech_to_text_component():
         };
         
         recognition.onend = function() {
-            document.getElementById('status').textContent = 'Ready';
+            if (currentTranscript.trim()) {
+                document.getElementById('status').textContent = 'Done! Copy the text below.';
+            } else {
+                document.getElementById('status').textContent = 'Ready';
+            }
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
         };
@@ -218,27 +219,12 @@ def speech_to_text_component():
         }
     }
     
-    function useTranscript() {
-        if (currentTranscript.trim()) {
-            // Store in sessionStorage for Streamlit to access
-            sessionStorage.setItem('speechTranscript', currentTranscript.trim());
-            
-            // Send message to parent
-            window.parent.postMessage({
-                type: 'speech_transcript',
-                transcript: currentTranscript.trim()
-            }, '*');
-            
-            document.getElementById('status').textContent = 'Text ready! Click "Refresh Text" below.';
-        }
-    }
-    
     // Listen for clear messages
     window.addEventListener('message', function(event) {
         if (event.data.type === 'clear_transcript') {
             document.getElementById('transcript').textContent = 'Click the microphone to start speaking...';
+            document.getElementById('speechOutput').value = '';
             currentTranscript = '';
-            sessionStorage.removeItem('speechTranscript');
         }
     });
     </script>
@@ -648,23 +634,14 @@ def main():
         st.markdown("#### 🎤 Voice Input")
         speech_to_text_component()
         
-        # Add a button to refresh/get the speech transcript
-        col_refresh, col_clear_speech = st.columns([1, 1])
-        with col_refresh:
-            if st.button("🔄 Refresh Text", help="Get speech text from microphone"):
-                # This will trigger a rerun and potentially get new text
-                st.rerun()
-        
-        with col_clear_speech:
-            if st.button("🗑️ Clear Speech", help="Clear speech transcript"):
-                st.session_state.speech_transcript = ""
-                st.rerun()
+        # Simple instruction for manual copy-paste
+        st.info("💡 **Simple Speech Workflow:** Speak into the microphone above, then copy the text that appears and paste it into the question box below.")
         
         # Question input
         user_question = st.text_area(
             "Your Question:", 
             value=st.session_state.get('speech_transcript', ''),
-            placeholder="Ask anything about the MS in Applied Data Science program... or use the microphone above!",
+            placeholder="Ask anything about the MS in Applied Data Science program... or use the microphone above and copy the text here!",
             height=100,
             key="question_input"
         )
@@ -678,6 +655,7 @@ def main():
         with col_clear:
             if st.button("🗑️ Clear All"):
                 st.session_state.speech_transcript = ""
+                # Clear the user_question by rerunning
                 st.rerun()
         
         # Ask button
@@ -724,19 +702,19 @@ def main():
         # Instructions for speech input
         with st.expander("🎤 How to use Voice Input", expanded=False):
             st.markdown("""
-            **Using Speech-to-Text:**
+            **Using Speech-to-Text (Simple Method):**
             1. Click the 🎤 microphone button to start recording
             2. Speak your question clearly
-            3. Click the ✓ "Use Text" button when done
-            4. Click the 🔄 "Refresh Text" button to get the speech in the question box
-            5. Review the text and click "Get Answer"
+            3. When done, your speech will appear as text above
+            4. Copy the text and paste it into the "Your Question" box below
+            5. Click "Get Answer"
             
             **Tips for better recognition:**
             - Speak clearly and at normal pace
             - Use a quiet environment
             - Allow microphone access when prompted by your browser
             - Supported in Chrome, Edge, Safari, and other modern browsers
-            - Use the refresh button if text doesn't appear automatically
+            - This simple copy-paste method works reliably across all browsers
             """)
 
         # Chat history
