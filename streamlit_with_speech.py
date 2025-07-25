@@ -772,6 +772,45 @@ def main():
         if st.button("🎤 Clear Voice"):
             st.session_state.speech_transcript = ""
             st.rerun()
+            
+        # End Session button
+        st.markdown("---")
+        st.markdown("### 🔚 Session Management")
+        
+        if st.button("🔚 End Session", type="secondary", help="Clear all data and reset the application"):
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            
+            # Show confirmation message
+            st.success("✅ Session ended successfully!")
+            st.info("🔄 Refresh the page to start a new session.")
+            
+            # Add JavaScript to clear any browser storage and optionally refresh
+            cleanup_js = """
+            <script>
+            // Clear any browser storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Clear speech recognition if active
+            if (window.recognition) {
+                try {
+                    window.recognition.stop();
+                } catch (e) {
+                    // Recognition wasn't active
+                }
+            }
+            
+            // Show confirmation
+            document.body.innerHTML = '<div style="background: #d4edda; color: #155724; padding: 20px; border-radius: 10px; text-align: center; font-size: 18px; margin: 20px;"><h3>🔚 Session Ended</h3><p>All data has been cleared from this browser.</p><p><strong>Refresh the page to start a new session.</strong></p><button onclick="location.reload()" style="background: #800000; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">🔄 Refresh Page</button></div>';
+            </script>
+            """
+            
+            components.html(cleanup_js, height=200)
+            
+            # Stop execution here
+            st.stop()
 
     # Footer with official UChicago branding
     st.markdown("""
