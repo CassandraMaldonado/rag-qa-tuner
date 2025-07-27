@@ -10,15 +10,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import streamlit.components.v1 as components
 
-# Page configuration
+# Config.
 st.set_page_config(
     page_title="UChicago MS-ADS Q&A Bot",
-    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS with speech button styling
 st.markdown("""
 <style>
     .main-header {
@@ -125,9 +123,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Simple Speech-to-Text Component that actually works
+# Speech-to-text.
 def speech_to_text_component():
-    """Create a simple speech-to-text component"""
     
     speech_component = """
     <div class="speech-controls">
@@ -254,8 +251,8 @@ def speech_to_text_component():
     
     return components.html(speech_component, height=200)
 
-class ImprovedRAGSystem:
-    """Improved RAG system with better search and guaranteed LLM answers."""
+# RAG.
+class Ragsystem:
     
     def __init__(self):
         self.chunks = []
@@ -265,110 +262,109 @@ class ImprovedRAGSystem:
         self.vectorizer = None
         self.chunk_vectors = None
     
+# Loading the the RAG system.
     def load_system(self, save_dir="rag_system_export"):
-        """Load the RAG system with detailed feedback."""
         try:
             if not os.path.exists(save_dir):
-                st.error(f"❌ Directory '{save_dir}' not found.")
+                st.error(f"Directory '{save_dir}' not found.")
                 return False
             
-            with st.spinner("📂 Loading RAG system..."):
-                # Load metadata
+            with st.spinner("Loading the RAG system."):
+                # Metadata.
                 metadata_path = os.path.join(save_dir, "metadata.json")
                 if os.path.exists(metadata_path):
                     with open(metadata_path, 'r') as f:
                         self.metadata = json.load(f)
-                    st.success(f"✓ Loaded metadata: {self.metadata.get('total_chunks', 0)} chunks expected")
+                    st.success(f"✓ Loaded metadata: {self.metadata.get('total_chunks', 0)} chunks expected.")
                 
-                # Load chunks
+                # Chunks.
                 chunks_path = os.path.join(save_dir, "chunks.pkl")
                 if os.path.exists(chunks_path):
                     with open(chunks_path, 'rb') as f:
                         self.chunks = pickle.load(f)
-                    st.success(f"✓ Loaded {len(self.chunks)} text chunks")
+                    st.success(f"✓ Loaded {len(self.chunks)} text chunks.")
                     
-                    # Show chunk type distribution
+                    # Chunk type distribution.
                     chunk_types = {}
                     for chunk in self.chunks:
                         chunk_type = chunk.get('chunk_type', 'unknown')
                         chunk_types[chunk_type] = chunk_types.get(chunk_type, 0) + 1
                     
-                    st.info(f"📊 Chunk types: {dict(chunk_types)}")
+                    st.info(f"✓ Chunk types: {dict(chunk_types)}.")
                 else:
-                    st.error("❌ chunks.pkl not found")
+                    st.error("chunks.pkl not found.")
                     return False
                 
-                # Create improved TF-IDF vectors
-                with st.spinner("🔍 Creating search index..."):
+                # TF-IDF vectors.
+                with st.spinner("Creating the search index."):
                     texts = [chunk['text'] for chunk in self.chunks]
                     self.vectorizer = TfidfVectorizer(
-                        max_features=10000,  # Increased for better coverage
+                        max_features=10000, 
                         stop_words='english',
-                        ngram_range=(1, 3),  # Include trigrams for better phrase matching
+                        ngram_range=(1, 3),
                         lowercase=True,
-                        min_df=1,  # Don't ignore rare terms
-                        max_df=0.95  # Ignore very common terms
+                        min_df=1,
+                        max_df=0.95
                     )
                     self.chunk_vectors = self.vectorizer.fit_transform(texts)
-                    st.success("✓ Created enhanced TF-IDF search index")
+                    st.success("✓ Created TF-IDF search index.")
                 
                 self.is_loaded = True
-                st.success("🎉 RAG system loaded successfully!")
+                st.success("✓ RAG system loaded.")
                 return True
                 
         except Exception as e:
-            st.error(f"❌ Error loading system: {e}")
+            st.error(f"Error loading system: {e}.")
             return False
-    
+
+# OpenAI key.    
     def setup_openai(self, api_key: str):
-        """Setup OpenAI client with validation."""
         try:
             self.openai_client = openai.OpenAI(api_key=api_key)
-            # Test the connection
+            # Testing the connection.
             response = self.openai_client.models.list()
-            st.success("✓ OpenAI API connected successfully")
+            st.success("✓ OpenAI API connected.")
             return True
         except Exception as e:
-            st.error(f"❌ OpenAI setup failed: {e}")
+            st.error(f"OpenAI setup failed: {e}.")
             return False
-    
+
+# Search with a lower threshold and boosting.  
     def search_chunks(self, query: str, k: int = 8):
-        """Enhanced search with lower threshold and better boosting."""
         if not self.is_loaded or not self.vectorizer:
             return []
         
         try:
-            # Transform query
+            # Transforming the query.
             query_vector = self.vectorizer.transform([query])
             similarities = cosine_similarity(query_vector, self.chunk_vectors).flatten()
             
-            # Get more candidates for boosting
+            # Boosting.
             top_indices = similarities.argsort()[-k*3:][::-1]
             
             results = []
             for idx in top_indices:
-                # Lower threshold - include any similarity > 0.05
                 if similarities[idx] > 0.05:
                     result = self.chunks[idx].copy()
                     result['semantic_score'] = float(similarities[idx])
                     results.append(result)
             
-            # Apply enhanced boosting
-            enhanced_results = self._apply_enhanced_boosting(query, results)
+            # Appyling the boosting.
+            enhanced_results = self.applying_boosting(query, results)
             enhanced_results.sort(key=lambda x: x['final_score'], reverse=True)
             
-            # Return top k results
+            # Top k results.
             return enhanced_results[:k]
             
         except Exception as e:
-            st.error(f"Search error: {e}")
+            st.error(f"Search error: {e}.")
             return []
     
-    def _apply_enhanced_boosting(self, query, results):
-        """Apply comprehensive boosting for UChicago MS-ADS queries."""
+# Boosting for the queries.
+    def applying_boosting(self, query, results):
         query_lower = query.lower()
         
-        # Enhanced keyword categories with more comprehensive terms
+        # Keyword categories with more specific terms.
         boost_categories = {
             'deadline_application': {
                 'keywords': ['deadline', 'date', 'apply', 'application', 'due', 'portal', 'september', 'cohort', 'filled', 'open', '2025', '2026', 'events', 'deadlines'],
@@ -412,24 +408,24 @@ class ImprovedRAGSystem:
             text_lower = result['text'].lower()
             final_score = result['semantic_score']
             
-            # Major boost for key facts and micro chunks
+            # Boosting for the key facts and using micro chunks.
             chunk_type = result.get('chunk_type', 'regular')
             if chunk_type in ['key_fact', 'micro']:
-                final_score *= 3.0  # Increased boost for key facts
+                final_score *= 3.0
             elif chunk_type == 'important':
                 final_score *= 2.0
             
-            # Apply category-specific boosting
+            # Applying the category boosting.
             for category, config in boost_categories.items():
                 query_matches = sum(1 for keyword in config['keywords'] if keyword in query_lower)
                 if query_matches > 0:
                     text_matches = sum(1 for keyword in config['keywords'] if keyword in text_lower)
                     if text_matches > 0:
-                        # Enhanced boost calculation
+                        # Boost calculation.
                         boost_factor = config['boost'] * (1 + 0.2 * text_matches) * (1 + 0.1 * query_matches)
                         final_score *= boost_factor
             
-            # Exact phrase matching with high boost
+            # Phrase matching with boost.
             exact_phrases = {
                 'application portal': 2.0,
                 'events & deadlines': 2.0,
@@ -449,32 +445,32 @@ class ImprovedRAGSystem:
                 if phrase in query_lower and phrase in text_lower:
                     final_score *= boost
             
-            # Length penalty for very short chunks (less informative)
+            # Length penalty for very short chunks since they are not informative.
             text_length = len(result['text'])
             if text_length < 50:
                 final_score *= 0.7
             elif text_length > 200:
-                final_score *= 1.1  # Slight boost for longer, more detailed chunks
+                final_score *= 1.1
             
             result['final_score'] = final_score
         
         return results
-    
+
+#LLM answers.    
     def generate_answer(self, query: str, chunks: List[Dict]):
-        """Generate comprehensive LLM answers."""
         if not self.openai_client:
-            return "❌ OpenAI client not configured. Please add your API key."
+            return "OpenAI client not configured."
         
         if not chunks:
-            return "❌ No relevant information found in the knowledge base."
+            return "No relevant information found in the knowledge base."
         
-        # Build enhanced context with prioritization
+        # Building the context with propority.
         context_parts = []
         key_facts = [c for c in chunks if c.get('chunk_type') in ['key_fact', 'micro']]
         important_chunks = [c for c in chunks if c.get('chunk_type') == 'important']
         regular_chunks = [c for c in chunks if c.get('chunk_type') not in ['key_fact', 'micro', 'important']]
         
-        # Prioritize key facts and important information
+        # Prioritizing the key facts and important information.
         if key_facts:
             context_parts.append("CRITICAL SPECIFIC INFORMATION:")
             for i, chunk in enumerate(key_facts[:6]):
@@ -495,7 +491,7 @@ class ImprovedRAGSystem:
         
         context = "\n".join(context_parts)
         
-        # Enhanced prompt with specific instructions for UChicago MS-ADS
+        # Prompt with specific instructions.
         prompt = f"""You are an expert assistant for the MS in Applied Data Science program at the University of Chicago. You must provide complete, accurate, and helpful answers based on the official program information provided.
 
 OFFICIAL PROGRAM INFORMATION:
@@ -537,40 +533,40 @@ Answer the student's question comprehensively using the exact information provid
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=1500,
-                temperature=0.1,  # Low temperature for consistency
+                temperature=0.1,
             )
             return response.choices[0].message.content
             
         except Exception as e:
             error_msg = str(e).lower()
             if "quota" in error_msg or "billing" in error_msg:
-                return "❌ OpenAI API quota exceeded. Please add credits to your account or check your billing."
+                return "OpenAI API quota exceeded. Please add credits to your account or check your billing."
             elif "401" in error_msg or "authentication" in error_msg:
-                return "❌ Invalid OpenAI API key. Please check your API key."
+                return "Invalid OpenAI API key. Please check your API key."
             elif "rate_limit" in error_msg:
-                return "❌ Rate limit exceeded. Please wait a moment and try again."
+                return "Rate limit exceeded. Please wait a moment and try again."
             else:
-                return f"❌ Error generating answer: {str(e)}"
-    
+                return f"Error generating answer: {str(e)}"
+
+# Pipeline of the questions and answers.
     def ask_question(self, query: str):
-        """Complete Q&A pipeline with guaranteed LLM response."""
         if not self.is_loaded:
-            return "❌ System not loaded", []
+            return "System not loaded", []
         
-        # Always search for chunks
+        # Searching for chunks.
         relevant_chunks = self.search_chunks(query, 8)
         
-        # Always try to generate an answer, even with low-scoring chunks
+        # Generate an answer even with low-scoring chunks.
         if relevant_chunks:
             answer = self.generate_answer(query, relevant_chunks)
         else:
-            # If no chunks found, provide a helpful response
-            answer = f"I couldn't find specific information about '{query}' in the MS in Applied Data Science knowledge base. This might be because:\n\n1. The information isn't available in the current data\n2. Try rephrasing your question\n3. Contact the program directly for the most current information\n\nProgram contacts:\n- In-Person Program: Jose Alvarado, Associate Director\n- Online Program: Patrick Vonesh, Senior Assistant Director"
+            # Avoiding hallucination.
+            answer = f"I couldn't find specific information about '{query}' in the MS in Applied Data Science knowledge base. This might be because:\n\n1. The information isn't available in the current data\n2. Try rephrasing your question\n3. Contact the program directly for the most current information\n\nProgram contacts:\n- In-Person Program: Jose Alvarado, Associate Director\n- Online Program: Patrick Vonesh, Senior Assistant Director."
             relevant_chunks = []
         
         return answer, relevant_chunks
 
-# Initialize session state
+# Session state.
 if 'rag_system' not in st.session_state:
     st.session_state.rag_system = None
 if 'chat_history' not in st.session_state:
@@ -580,8 +576,8 @@ if 'system_ready' not in st.session_state:
 if 'speech_transcript' not in st.session_state:
     st.session_state.speech_transcript = ""
 
+# UChicago theme.
 def main():
-    # Header with UChicago branding
     st.markdown("""
     <div class="main-header">
         <div style="display: flex; align-items: center; justify-content: center; gap: 30px;">
@@ -598,11 +594,11 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar
+    # Sidebar.
     with st.sidebar:
         st.markdown("### 🔧 System Setup")
         
-        # System loading
+        # Loading.
         st.markdown("#### 📂 Load RAG System")
         save_dir = st.text_input(
             "RAG System Directory", 
@@ -611,12 +607,12 @@ def main():
         )
         
         if st.button("📥 Load System", type="primary"):
-            st.session_state.rag_system = ImprovedRAGSystem()
+            st.session_state.rag_system = Ragsystem()
             success = st.session_state.rag_system.load_system(save_dir)
             if success:
                 st.session_state.system_ready = "loaded"
         
-        # OpenAI setup
+        # OpenAI key.
         st.markdown("#### 🔑 OpenAI API Key")
         api_key = st.text_input(
             "API Key", 
@@ -629,22 +625,22 @@ def main():
                 if st.session_state.rag_system.setup_openai(api_key):
                     st.session_state.system_ready = "ready"
 
-        # System status
+        # System status.
         if st.session_state.system_ready == "ready":
-            st.success("✅ System Ready!")
+            st.success("✓ System Ready.")
             
             if st.session_state.rag_system:
                 rag = st.session_state.rag_system
-                st.markdown("### 📊 System Info")
+                st.markdown("### System Info")
                 st.metric("Text Chunks", len(rag.chunks))
                 if rag.metadata:
                     st.metric("Pages Scraped", rag.metadata.get('total_pages', 'N/A'))
-                st.info("🚀 Enhanced TF-IDF + LLM Mode")
+                st.info("RAG + LLM Mode")
                 
         elif st.session_state.system_ready == "loaded":
-            st.warning("⚠️ Add OpenAI API key to enable Q&A")
+            st.warning("Add the OpenAI API key to enable Q&A.")
         else:
-            st.warning("⚠️ Load your RAG system first")
+            st.warning("Load the RAG system.")
 
     # Main content
     col1, col2 = st.columns([2, 1])
@@ -653,36 +649,36 @@ def main():
         st.markdown("### 💬 Ask Your Question")
         
         # Speech-to-Text Component
-        st.markdown("#### 🎤 Voice Input")
+        st.markdown("#### 🎤 Voice Question")
         speech_to_text_component()
         
-        st.info("💡 **Simple Speech Workflow:** 1) Click the microphone and speak, 2) Click 'Copy Text' button, 3) Paste in the question box below")
+        st.info("**Simple Speech Workflow:** 1) Click the microphone and speak, 2) Click 'Copy Text' button, 3) Paste in the question box below.")
         
-        # Question input
+        # Questions.
         user_question = st.text_area(
             "Your Question:", 
             value=st.session_state.get('speech_transcript', ''),
-            placeholder="Ask anything about the MS in Applied Data Science program... or speak above and paste the text here!",
+            placeholder="Ask anything about the MS in Applied Data Science program or speak above and paste the text.",
             height=100,
             key="question_input"
         )
         
-        # Update session state if user types in the text area
+        # Update the session state.
         if user_question != st.session_state.get('speech_transcript', ''):
             st.session_state.speech_transcript = user_question
         
-        # Clear transcript button
+        # Transcript button.
         col_clear, col_ask = st.columns([1, 3])
         with col_clear:
-            if st.button("🗑️ Clear All"):
+            if st.button("🗑️ Clear."):
                 st.session_state.speech_transcript = ""
                 st.rerun()
         
-        # Ask button
+        # Ask button.
         with col_ask:
             if st.button("🔍 Get Answer", type="primary", disabled=(st.session_state.system_ready != "ready")):
                 if user_question and st.session_state.rag_system:
-                    with st.spinner("🤖 Generating answer..."):
+                    with st.spinner("🤖 Generating the answer..."):
                         start_time = time.time()
                         answer, sources = st.session_state.rag_system.ask_question(user_question)
                         response_time = time.time() - start_time
@@ -695,7 +691,7 @@ def main():
                         
                         # Display search info
                         if sources:
-                            st.info(f"📊 Found {len(sources)} relevant sources (response time: {response_time:.1f}s)")
+                            st.info(f"📊 Found {len(sources)} relevant sources (response time: {response_time:.1f}s).")
                             
                             with st.expander("📚 View Sources", expanded=False):
                                 for i, source in enumerate(sources[:5]):
@@ -705,9 +701,9 @@ def main():
                                     st.markdown(f"**Text:** {source['text'][:400]}...")
                                     st.markdown('</div>', unsafe_allow_html=True)
                         else:
-                            st.info("📊 No specific sources found - generated general response")
+                            st.info("No specific sources found. The answer was generated based on the available knowledge base.")
                         
-                        # Add to chat history
+                        # Add to chat history.
                         st.session_state.chat_history.append({
                             'question': user_question,
                             'answer': answer,
@@ -716,29 +712,20 @@ def main():
                             'input_method': 'voice' if st.session_state.speech_transcript else 'text'
                         })
                         
-                        # Clear the transcript after successful question
+                        # Clear the transcript after a question.
                         st.session_state.speech_transcript = ""
 
-        # Instructions for speech input
+        # Instructions for the voice question.
         with st.expander("🎤 How to use Voice Input", expanded=False):
             st.markdown("""
-            **Using Speech-to-Text (Simple & Reliable):**
-            1. Click the 🎤 microphone button to start recording
-            2. Speak your question clearly
-            3. Your speech will appear in the text box below the microphone
-            4. Click the "📋 Copy Text" button to copy your speech
-            5. Paste the text into the "Your Question" box below
-            6. Click "Get Answer" to process your question
-            
-            **Tips for better recognition:**
-            - Speak clearly and at normal pace
-            - Use a quiet environment
-            - Allow microphone access when prompted by your browser
-            - Works best in Chrome, Edge, and Safari
-            - You can click on the speech text box to select all text easily
+            1. Click the 🎤 microphone button to start recording.
+            2. Your speech will appear in the text box below the microphone.
+            3. Click the "📋 Copy Text" button to copy the question.
+            5. Paste the text into the "Your Question" box below.
+            6. Click "Get Answer" to process your question.
             """)
 
-        # Chat history
+        # Chat history.
         if st.session_state.chat_history:
             st.markdown("### 💭 Recent Questions")
             for i, chat in enumerate(reversed(st.session_state.chat_history[-3:])):
@@ -748,23 +735,22 @@ def main():
                     st.markdown("**Answer:**")
                     st.markdown(chat['answer'][:500] + ("..." if len(chat['answer']) > 500 else ""))
 
-    # Right column
     with col2:
-        st.markdown("### 📊 System Status")
+        st.markdown("### System Status")
         
         if st.session_state.system_ready == "ready":
             st.metric("Status", "🟢 Online")
             st.metric("Questions Asked", len(st.session_state.chat_history))
             
-            # Voice input stats
+            # Voice input status.
             if st.session_state.chat_history:
                 voice_questions = sum(1 for chat in st.session_state.chat_history if chat.get('input_method') == 'voice')
                 st.metric("Voice Questions", f"{voice_questions} 🎤")
         else:
             st.metric("Status", "🔴 Setup Required")
 
-        # Quick actions
-        st.markdown("### ⚡ Actions")
+        # Quick actions.
+        st.markdown("### Actions")
         if st.button("🔄 Clear History"):
             st.session_state.chat_history = []
             st.rerun()
@@ -773,20 +759,18 @@ def main():
             st.session_state.speech_transcript = ""
             st.rerun()
             
-        # End Session button
+        # End session.
         st.markdown("---")
-        st.markdown("### 🔚 Session Management")
+        st.markdown("### Session Management")
         
         if st.button("🔚 End Session", type="secondary", help="Clear all data and reset the application"):
-            # Clear all session state
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             
-            # Show confirmation message
-            st.success("✅ Session ended successfully!")
+            # Confirmation message.
+            st.success("✓ Session ended.")
             st.info("🔄 Refresh the page to start a new session.")
             
-            # Add JavaScript to clear any browser storage and optionally refresh
             cleanup_js = """
             <script>
             // Clear any browser storage
@@ -809,10 +793,9 @@ def main():
             
             components.html(cleanup_js, height=200)
             
-            # Stop execution here
             st.stop()
 
-    # Footer with official UChicago branding
+    # UChicago branding.
     st.markdown("""
     <div style="margin-top: 3rem; padding: 2rem; background-color: #800000; color: white; text-align: center; border-radius: 10px;">
         <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px;">
