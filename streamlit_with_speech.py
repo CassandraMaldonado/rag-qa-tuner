@@ -1,4 +1,4 @@
- import streamlit as st
+import streamlit as st
 import os
 import json
 import pickle
@@ -293,7 +293,7 @@ def speech_to_text_component():
     
     return components.html(speech_component, height=220)
 
-# RAG system class (keeping original implementation)
+# RAG system class
 class Ragsystem:
     
     def __init__(self):
@@ -304,7 +304,6 @@ class Ragsystem:
         self.vectorizer = None
         self.chunk_vectors = None
     
-    # [Rest of the RAG system methods remain the same as in original code]
     def load_system(self, save_dir="rag_system_export"):
         try:
             if not os.path.exists(save_dir):
@@ -389,7 +388,7 @@ class Ragsystem:
                     result['semantic_score'] = float(similarities[idx])
                     results.append(result)
             
-            # Appyling the boosting.
+            # Applying the boosting.
             enhanced_results = self.applying_boosting(query, results)
             enhanced_results.sort(key=lambda x: x['final_score'], reverse=True)
             
@@ -502,7 +501,7 @@ class Ragsystem:
         if not chunks:
             return "No relevant information found in the knowledge base."
         
-        # Building the context with propority.
+        # Building the context with priority.
         context_parts = []
         key_facts = [c for c in chunks if c.get('chunk_type') in ['key_fact', 'micro']]
         important_chunks = [c for c in chunks if c.get('chunk_type') == 'important']
@@ -639,10 +638,10 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Hidden input to receive JS value - ADDED HERE
+    # Hidden input to receive JS value
     js_input = st.text_input("Hidden Input", key="js_data", label_visibility="collapsed")
     
-    # Process the JS value in Python - ADDED HERE  
+    # Process the JS value in Python
     if js_input:
         processed_value = process_js_value(js_input)
         if processed_value:
@@ -650,7 +649,7 @@ def main():
             st.session_state.speech_transcript = processed_value
             st.rerun()  # Refresh to update the question input field
 
-    # Sidebar (keeping original implementation)
+    # Sidebar
     with st.sidebar:
         st.markdown("### 🔧 System Setup")
         
@@ -704,7 +703,7 @@ def main():
     with col1:
         st.markdown("### 💬 Ask Your Question")
         
-        # Speech-to-Text Component - UPDATED
+        # Speech-to-Text Component
         st.markdown("#### 🎤 Voice Question (Enhanced)")
         speech_to_text_component()
         
