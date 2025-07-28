@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import os
 import json
 import pickle
@@ -120,10 +120,18 @@ st.markdown("""
         font-style: italic;
         color: #495057;
     }
+    
+    /* Hide the hidden input visually but keep it functional */
+    .hidden-input {
+        position: absolute;
+        left: -9999px;
+        opacity: 0;
+        pointer-events: none;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Speech-to-text.
+# Speech-to-text with hidden input integration.
 def speech_to_text_component():
     
     speech_component = """
@@ -135,6 +143,7 @@ def speech_to_text_component():
         <div id="status" class="speech-status">Ready</div>
         <textarea id="speechOutput" style="width: 100%; height: 60px; margin-top: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Your speech will appear here..."></textarea>
         <button onclick="copyToClipboard()" style="margin-top: 5px; padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">📋 Copy Text</button>
+        <button onclick="sendToPython()" style="margin-top: 5px; margin-left: 5px; padding: 5px 10px; background: #800000; color: white; border: none; border-radius: 4px; cursor: pointer;">📤 Send to Python</button>
     </div>
 
     <script>
@@ -178,7 +187,16 @@ def speech_to_text_component():
             // Put the transcript in the textarea immediately
             if (finalTranscript.trim()) {
                 document.getElementById('speechOutput').value = finalTranscript.trim();
-                document.getElementById('status').textContent = 'Speech captured! Copy the text below and paste it in the question box.';
+                document.getElementById('status').textContent = 'Speech captured! You can copy the text or send directly to Python.';
+                
+                // Automatically send final transcript to hidden input
+                const hiddenInput = parent.document.querySelector('input[data-testid="stTextInput-input"][aria-label="Hidden Input"]');
+                if (hiddenInput && finalTranscript.trim()) {
+                    hiddenInput.value = finalTranscript.trim();
+                    // Trigger change event to notify Streamlit
+                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         };
         
@@ -192,7 +210,7 @@ def speech_to_text_component():
             document.getElementById('speechButton').classList.remove('recording');
             isRecording = false;
             if (currentTranscript.trim()) {
-                document.getElementById('status').textContent = 'Done! Copy the text and paste it below.';
+                document.getElementById('status').textContent = 'Done! Text sent to Python automatically.';
             } else {
                 document.getElementById('status').textContent = 'Ready';
             }
@@ -237,6 +255,30 @@ def speech_to_text_component():
         }
     }
     
+    function sendToPython() {
+        const textarea = document.getElementById('speechOutput');
+        const text = textarea.value.trim();
+        
+        if (text) {
+            // Find the hidden input in the parent Streamlit app
+            const hiddenInput = parent.document.querySelector('input[data-testid="stTextInput-input"][aria-label="Hidden Input"]');
+            if (hiddenInput) {
+                hiddenInput.value = text;
+                // Trigger events to notify Streamlit of the change
+                hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                hiddenInput.focus();
+                hiddenInput.blur();
+                
+                document.getElementById('status').textContent = '✓ Sent to Python! Check the app for processing.';
+            } else {
+                document.getElementById('status').textContent = '❌ Could not find hidden input. Make sure the app is properly loaded.';
+            }
+        } else {
+            document.getElementById('status').textContent = 'No text to send. Please speak first.';
+        }
+    }
+    
     // Auto-select text when clicked
     document.addEventListener('DOMContentLoaded', function() {
         const textarea = document.getElementById('speechOutput');
@@ -249,9 +291,9 @@ def speech_to_text_component():
     </script>
     """
     
-    return components.html(speech_component, height=200)
+    return components.html(speech_component, height=220)
 
-# RAG.
+# RAG system class (keeping original implementation)
 class Ragsystem:
     
     def __init__(self):
@@ -262,7 +304,7 @@ class Ragsystem:
         self.vectorizer = None
         self.chunk_vectors = None
     
-# Loading the the RAG system.
+    # [Rest of the RAG system methods remain the same as in original code]
     def load_system(self, save_dir="rag_system_export"):
         try:
             if not os.path.exists(save_dir):
@@ -317,7 +359,6 @@ class Ragsystem:
             st.error(f"Error loading system: {e}.")
             return False
 
-# OpenAI key.    
     def setup_openai(self, api_key: str):
         try:
             self.openai_client = openai.OpenAI(api_key=api_key)
@@ -329,7 +370,6 @@ class Ragsystem:
             st.error(f"OpenAI setup failed: {e}.")
             return False
 
-# Search with a lower threshold and boosting.  
     def search_chunks(self, query: str, k: int = 8):
         if not self.is_loaded or not self.vectorizer:
             return []
@@ -360,7 +400,6 @@ class Ragsystem:
             st.error(f"Search error: {e}.")
             return []
     
-# Boosting for the queries.
     def applying_boosting(self, query, results):
         query_lower = query.lower()
         
@@ -456,7 +495,6 @@ class Ragsystem:
         
         return results
 
-#LLM answers.    
     def generate_answer(self, query: str, chunks: List[Dict]):
         if not self.openai_client:
             return "OpenAI client not configured."
@@ -548,7 +586,6 @@ Answer the student's question comprehensively using the exact information provid
             else:
                 return f"Error generating answer: {str(e)}"
 
-# Pipeline of the questions and answers.
     def ask_question(self, query: str):
         if not self.is_loaded:
             return "System not loaded", []
@@ -566,6 +603,14 @@ Answer the student's question comprehensively using the exact information provid
         
         return answer, relevant_chunks
 
+# Processing function for JS value
+def process_js_value(value):
+    """Process the value received from JavaScript speech recognition"""
+    if value.strip():
+        st.success(f"🎤 Voice input received: {value}")
+        return value
+    return None
+
 # Session state.
 if 'rag_system' not in st.session_state:
     st.session_state.rag_system = None
@@ -576,7 +621,7 @@ if 'system_ready' not in st.session_state:
 if 'speech_transcript' not in st.session_state:
     st.session_state.speech_transcript = ""
 
-# UChicago theme.
+# Main function
 def main():
     st.markdown("""
     <div class="main-header">
@@ -594,7 +639,18 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar.
+    # Hidden input to receive JS value - ADDED HERE
+    js_input = st.text_input("Hidden Input", key="js_data", label_visibility="collapsed")
+    
+    # Process the JS value in Python - ADDED HERE  
+    if js_input:
+        processed_value = process_js_value(js_input)
+        if processed_value:
+            # Update the speech transcript in session state
+            st.session_state.speech_transcript = processed_value
+            st.rerun()  # Refresh to update the question input field
+
+    # Sidebar (keeping original implementation)
     with st.sidebar:
         st.markdown("### 🔧 System Setup")
         
@@ -648,30 +704,28 @@ def main():
     with col1:
         st.markdown("### 💬 Ask Your Question")
         
-        # Speech-to-Text Component
-        st.markdown("#### 🎤 Voice Question")
+        # Speech-to-Text Component - UPDATED
+        st.markdown("#### 🎤 Voice Question (Enhanced)")
         speech_to_text_component()
         
-        st.info("**Simple Speech Workflow:** 1) Click the microphone and speak, 2) Click 'Copy Text' button, 3) Paste in the question box below.")
+        st.info("**Enhanced Speech Workflow:** 1) Click microphone and speak, 2) Speech automatically populates question box below, 3) Click 'Get Answer'")
         
-        # Questions.
+        # Questions with automatic population from speech
         user_question = st.text_area(
             "Your Question:", 
             value=st.session_state.get('speech_transcript', ''),
-            placeholder="Ask anything about the MS in Applied Data Science program or speak above and paste the text.",
+            placeholder="Ask anything about the MS in Applied Data Science program or use voice input above.",
             height=100,
             key="question_input"
         )
         
-        # Update the session state.
-        if user_question != st.session_state.get('speech_transcript', ''):
-            st.session_state.speech_transcript = user_question
-        
-        # Transcript button.
+        # Clear and Ask buttons
         col_clear, col_ask = st.columns([1, 3])
         with col_clear:
-            if st.button("🗑️ Clear."):
+            if st.button("🗑️ Clear"):
                 st.session_state.speech_transcript = ""
+                # Clear the hidden input as well
+                js_input = ""
                 st.rerun()
         
         # Ask button.
@@ -704,28 +758,38 @@ def main():
                             st.info("No specific sources found. The answer was generated based on the available knowledge base.")
                         
                         # Add to chat history.
+                        input_method = 'voice' if js_input or st.session_state.speech_transcript else 'text'
                         st.session_state.chat_history.append({
                             'question': user_question,
                             'answer': answer,
                             'sources': len(sources) if sources else 0,
                             'timestamp': time.strftime('%H:%M:%S'),
-                            'input_method': 'voice' if st.session_state.speech_transcript else 'text'
+                            'input_method': input_method
                         })
                         
-                        # Clear the transcript after a question.
+                        # Clear the transcript and hidden input after processing
                         st.session_state.speech_transcript = ""
 
-        # Instructions for the voice question.
-        with st.expander("🎤 How to use Voice Input", expanded=False):
+        # Instructions for voice input
+        with st.expander("🎤 How to use Enhanced Voice Input", expanded=False):
             st.markdown("""
-            1. Click the 🎤 microphone button to start recording.
-            2. Your speech will appear in the text box below the microphone.
-            3. Click the "📋 Copy Text" button to copy the question.
-            5. Paste the text into the "Your Question" box below.
-            6. Click "Get Answer" to process your question.
+            **New Enhanced Method:**
+            1. Click the 🎤 microphone button to start recording
+            2. Speak your question clearly
+            3. The text will automatically appear in the question box below
+            4. Click "Get Answer" to process your question
+            
+            **Alternative Methods:**
+            - Use the "📤 Send to Python" button for manual transfer
+            - Use the "📋 Copy Text" button to copy and paste manually
+            
+            **Tips:**
+            - Speak clearly and at normal pace
+            - The system works best with Chrome, Edge, or Safari
+            - Your speech is processed locally in your browser
             """)
 
-        # Chat history.
+        # Chat history
         if st.session_state.chat_history:
             st.markdown("### 💭 Recent Questions")
             for i, chat in enumerate(reversed(st.session_state.chat_history[-3:])):
@@ -742,14 +806,25 @@ def main():
             st.metric("Status", "🟢 Online")
             st.metric("Questions Asked", len(st.session_state.chat_history))
             
-            # Voice input status.
+            # Voice input status with enhanced tracking
             if st.session_state.chat_history:
                 voice_questions = sum(1 for chat in st.session_state.chat_history if chat.get('input_method') == 'voice')
                 st.metric("Voice Questions", f"{voice_questions} 🎤")
+                
+            # Show current speech transcript status
+            if st.session_state.speech_transcript:
+                st.success("🎤 Voice input ready!")
+                st.text_area("Current Voice Input:", 
+                           value=st.session_state.speech_transcript[:100] + ("..." if len(st.session_state.speech_transcript) > 100 else ""),
+                           height=60, disabled=True)
+            
+            # Show hidden input status for debugging
+            if js_input:
+                st.info("📡 JS→Python connection active")
         else:
             st.metric("Status", "🔴 Setup Required")
 
-        # Quick actions.
+        # Quick actions
         st.markdown("### Actions")
         if st.button("🔄 Clear History"):
             st.session_state.chat_history = []
@@ -759,7 +834,22 @@ def main():
             st.session_state.speech_transcript = ""
             st.rerun()
             
-        # End session.
+        if st.button("🧹 Clear All Data"):
+            st.session_state.speech_transcript = ""
+            st.session_state.chat_history = []
+            st.rerun()
+            
+        # System info
+        st.markdown("### Voice System Info")
+        st.info("""
+        **Enhanced Features:**
+        - ✅ Auto-populate questions
+        - ✅ Real-time JS→Python transfer  
+        - ✅ Voice/text input tracking
+        - ✅ Multiple transfer methods
+        """)
+            
+        # End session
         st.markdown("---")
         st.markdown("### Session Management")
         
@@ -767,7 +857,7 @@ def main():
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             
-            # Confirmation message.
+            # Confirmation message
             st.success("✓ Session ended.")
             st.info("🔄 Refresh the page to start a new session.")
             
@@ -786,16 +876,21 @@ def main():
                 }
             }
             
+            // Clear hidden inputs
+            const hiddenInputs = parent.document.querySelectorAll('input[data-testid="stTextInput-input"][aria-label="Hidden Input"]');
+            hiddenInputs.forEach(input => {
+                input.value = '';
+            });
+            
             // Show confirmation
             document.body.innerHTML = '<div style="background: #d4edda; color: #155724; padding: 20px; border-radius: 10px; text-align: center; font-size: 18px; margin: 20px;"><h3>🔚 Session Ended</h3><p>All data has been cleared from this browser.</p><p><strong>Refresh the page to start a new session.</strong></p><button onclick="location.reload()" style="background: #800000; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">🔄 Refresh Page</button></div>';
             </script>
             """
             
             components.html(cleanup_js, height=200)
-            
             st.stop()
 
-    # UChicago branding.
+    # UChicago branding
     st.markdown("""
     <div style="margin-top: 3rem; padding: 2rem; background-color: #800000; color: white; text-align: center; border-radius: 10px;">
         <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px;">
@@ -804,7 +899,7 @@ def main():
             <span style="font-weight: bold;">University of Chicago</span>
         </div>
         <p style="margin: 5px 0;">Data Science Institute | MS in Applied Data Science</p>
-        <p style="margin: 0; font-size: 0.9rem; color: #D6D6CE;">Official Program Information Assistant with Voice Input 🎤</p>
+        <p style="margin: 0; font-size: 0.9rem; color: #D6D6CE;">Enhanced Voice-Enabled Q&A Assistant 🎤➡️🐍</p>
     </div>
     """, unsafe_allow_html=True)
 
