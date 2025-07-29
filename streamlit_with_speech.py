@@ -804,7 +804,7 @@ def main():
             <span style="font-weight: bold;">University of Chicago</span>
         </div>
         <p style="margin: 5px 0;">Data Science Institute | MS in Applied Data Science</p>
-        <p style="margin: 0; font-size: 0.9rem; color: #D6D6CE;">Official Program Information Assistant with Voice Input 🎤</p>
+        <p style="margin: 0; font-size: 0.9rem; color: #D6D6CE;">Official Program Information Assistant. </p>
     </div>
     """, unsafe_allow_html=True)
 
